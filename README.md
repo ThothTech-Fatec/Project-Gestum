@@ -86,7 +86,7 @@ A solução consiste em um sistema web responsivo que permite cadastrar, visuali
 As entregas de valor de cada sprint estão mais detalhadas nos relatórios disponíveis nos links abaixo.
 
  
- ### <a href="./Relatórios/Sprint 1.md">1️⃣SPRINT 1 - Entrega: 30/03/2025</a> 
+ ### <a href="./Relatorios/Sprint 1.md">1️⃣SPRINT 1 - Entrega: 30/03/2025</a> 
 
  ### <a href="./Relatórios/Sprint 2.md">2️⃣SPRINT 2 - Entrega: 27/04/2025</a> 
 
