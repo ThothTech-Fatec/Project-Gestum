@@ -41,15 +41,15 @@ A solução consiste em um sistema web responsivo que permite cadastrar, visuali
 
 | Rank | Prioridade |  User Story   | Estimativa | Sprint |  Requisito do Parceiro   | Critério de Aceitação | 
 | :----: | :----: | :----: | :----: | :----: | :----: | :----: |
-1|Alta|Como coordenador, quero cadastrar novos projetos para que possamos acompanhar suas atividades.|5 Pontos|1|Cadastrar projetos da FAPG|O usuário pode cadastrar um projeto informando nome, descrição e responsável.
-2|Alta|Como usuário, quero visualizar a lista de projetos cadastrados para ter um panorama geral.|3 Pontos|1|Permitir recuperação de dados de projetos|Os projetos são exibidos em uma lista com informações básicas.
-3|Alta|	Como coordenador, quero editar e excluir um projeto cadastrado para manter os dados atualizados.|5 Pontos|1|Permitir atualizar e excluir dados dos projetos|O usuário pode editar ou excluir um projeto existente.
-4|Média|Como usuário, quero visualizar projetos por área de atuação para facilitar a busca.|3 Pontos|2|Visualizar projetos por área de atuação|Os projetos são filtráveis por área de atuação.
-5|Média|Como usuário, quero visualizar projetos por responsáveis para acompanhar suas atribuições.|3 Pontos|2|Visualizar projetos por responsáveis|Os projetos podem ser filtrados por responsável.
-6|Alta|Como coordenador, quero visualizar projetos pelo status para acompanhar seu progresso.|5 Pontos|2|Visualizar projetos pelo status|Os projetos são exibidos com status.
-7|Alta|Como coordenador, quero acompanhar o andamento das atividades de um projeto para garantir que prazos sejam cumpridos.|8 Pontos|3|Acompanhar andamento das atividades|O sistema deve exibir uma linha do tempo das atividades.
-8|Baixa|Como usuário, quero que o sistema tenha uma interface intuitiva para facilitar a navegação.|2 Pontos|3|Usabilidade	|A interface deve ser responsiva e fácil de usar.
-9|Média|	Como coordenador, quero que os dados dos projetos sejam protegidos para garantir a privacidade das informações.|4 Pontos|3|Privacidade de dados|O acesso às informações deve ser restrito conforme nível de permissão.
+1|Alta|Como coordenador, quero cadastrar novos projetos para que possamos acompanhar suas atividades.|5 Pontos|1|Cadastrar projetos da FAPG|-O usuário pode cadastrar um projeto informando nome e descrição<br>-Após o cadastro, o projeto é salvo corretamente no sistema.
+2|Alta|Como usuário, quero visualizar a lista de projetos cadastrados para ter um panorama geral.|3 Pontos|1|Permitir recuperação de dados de projetos|-Os projetos são exibidos em uma lista com informações básicas.<br>-A lista é apresentada de forma clara e organizada, permitindo fácil acesso às informações dos projetos.
+3|Alta|	Como coordenador, quero editar e excluir um projeto cadastrado para manter os dados atualizados.|5 Pontos|1|Permitir atualizar e excluir dados dos projetos|-O usuário pode editar ou excluir um projeto existente.<br>-As alterações feitas são salvas corretamente no sistema e refletem na visualização dos projetos.
+4|Média|Como usuário, quero visualizar projetos por área de atuação para facilitar a busca.|3 Pontos|2|Visualizar projetos por área de atuação|-Os projetos são filtráveis por área de atuação.<br>-A filtragem por área de atuação é intuitiva e os resultados são apresentados de forma clara.
+5|Média|Como usuário, quero visualizar projetos por responsáveis para acompanhar suas atribuições.|3 Pontos|2|Visualizar projetos por responsáveis|-Os projetos podem ser filtrados por responsável.<br>-A lista de projetos exibe claramente os responsáveis de cada projeto filtrado.
+6|Alta|Como coordenador, quero visualizar projetos pelo status para acompanhar seu progresso.|5 Pontos|2|Visualizar projetos pelo status|-Os projetos são exibidos com status.<br>-A visualização do status é atualizada automaticamente conforme mudanças no progresso do projeto.
+7|Alta|Como coordenador, quero acompanhar o andamento das atividades de um projeto para garantir que prazos sejam cumpridos.|8 Pontos|3|Acompanhar andamento das atividades|-O sistema deve exibir uma linha do tempo das atividades.<br>-As atividades são exibidas de forma cronológica e destacam prazos importantes e marcos de progresso.
+8|Baixa|Como usuário, quero que o sistema tenha uma interface intuitiva para facilitar a navegação.|2 Pontos|3|Usabilidade	|-A interface do sistema é responsiva, adaptando-se bem a diferentes dispositivos e tamanhos de tela.<br>-As funcionalidades principais são facilmente acessíveis através de uma navegação clara e intuitiva.
+9|Média|Como coordenador, quero que os dados dos projetos sejam protegidos para garantir a privacidade das informações.|4 Pontos|3|Privacidade de dados|-O acesso às informações deve ser restrito conforme nível de permissão.<br>-A privacidade dos dados dos projetos é mantida, garantindo que apenas usuários autorizados possam visualizar informações sensíveis.
 
 <span id="requisitos">
 
