@@ -1,0 +1,46 @@
+.superior-menu {
+    background-color: #333;
+    width: 100%;
+    position: fixed;
+    top: 0;
+    left: 0;
+    padding: 15px 20px; /* Mantém um bom espaçamento */
+    z-index: 1000;
+    display: flex;
+    justify-content: flex-start; /* Mantém os itens mais à esquerda */
+    align-items: center;
+}
+
+/* Ajusta a lista de navegação */
+.superior-menu ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+}
+
+/* Ajusta a posição dos itens do menu */
+.superior-menu li {
+    margin: 0 15px;
+}
+
+/* Mantém os links estilizados */
+.superior-menu a {
+    color: white;
+    text-decoration: none;
+    font-size: 18px;
+    font-weight: bold;
+    transition: color 0.3s;
+}
+
+.superior-menu a:hover {
+    color: #f39c12;
+}
+
+/* Avatar no canto direito */
+.avatar {
+    margin-left: auto; /* Empurra o avatar para a extrema direita */
+    display: flex;
+    align-items: center;
+    padding-right: 50px; /* Ajusta para não encostar na borda */
+}
