@@ -10,7 +10,7 @@ import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
 import TextField from '@mui/material/TextField';
-import Dialog from '@mui/material/Dialog'; // Novo import para o diálogo de confirmação
+import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogContentText from '@mui/material/DialogContentText';
@@ -22,15 +22,24 @@ export default function ImageAvatars() {
     localStorage.getItem('Logado') === 'true'
   );
   const [profilePic, setProfilePic] = React.useState(
-    localStorage.getItem('ProfilePic') || "/Marcio.jpg"
+    localStorage.getItem('ProfilePic') || ''
   );
   const [userName, setUserName] = React.useState(
-    localStorage.getItem('UserName') || "Márcio Chad"
+    localStorage.getItem('UserName') || ''
   );
+  const [UserEmail, setUserEmail] = React.useState(
+    localStorage.getItem('UserEmail') || ''
+  );
+  const [UserPhone, setUserPhone] = React.useState(
+    localStorage.getItem('UserPhone') || ''
+  );
+
   const [modalOpen, setModalOpen] = React.useState(false);
   const [confirmOpen, setConfirmOpen] = React.useState(false); // Estado para o diálogo de confirmação
   const [tempProfilePic, setTempProfilePic] = React.useState(profilePic); // Estado temporário para a foto
   const [tempUserName, setTempUserName] = React.useState(userName); // Estado temporário para o nome
+  const [tempUserEmail, setTempUserEmail] = React.useState(UserEmail); // Estado temporário para o email
+  const [tempUserPhone, setTempUserPhone] = React.useState(UserPhone); // Estado temporário para o telefone
   const open = Boolean(anchorEl);
 
   const handleClick = (event: React.MouseEvent<HTMLElement>) => {
@@ -54,13 +63,28 @@ export default function ImageAvatars() {
 
   const handleOpenModal = () => {
     setModalOpen(true);
-    setTempProfilePic(profilePic); // Inicializa os estados temporários
+    setTempProfilePic(profilePic);
     setTempUserName(userName);
+    setTempUserEmail(UserEmail);
+    setTempUserPhone(UserPhone);
     handleClose();
   };
 
   const handleCloseModal = () => {
     setModalOpen(false);
+  };
+  
+  const formatPhoneNumber = (value: string) => {
+    const cleaned = value.replace(/\D/g, ""); // Remove caracteres não numéricos
+    if (cleaned.length > 10) {
+      return `(${cleaned.slice(0, 2)}) ${cleaned.slice(2, 7)}-${cleaned.slice(7, 11)}`;
+    } else if (cleaned.length > 6) {
+      return `(${cleaned.slice(0, 2)}) ${cleaned.slice(2, 6)}-${cleaned.slice(6)}`;
+    } else if (cleaned.length > 2) {
+      return `(${cleaned.slice(0, 2)}) ${cleaned.slice(2)}`;
+    } else {
+      return cleaned;
+    }
   };
 
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -79,22 +103,40 @@ export default function ImageAvatars() {
     setTempUserName(event.target.value); // Atualiza o estado temporário
   };
 
+  const handleEmailChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setTempUserEmail(event.target.value); // Atualiza o estado temporário
+  };
+  const handlePhoneChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setTempUserPhone(formatPhoneNumber(event.target.value)); // Atualiza o estado temporário
+  };
+
   const handleSaveChanges = () => {
+    if (tempUserEmail === '' || tempUserName === '' || tempUserPhone === '') {
+      return alert('Preencha todos os campos');
+    }
+    else {
     setConfirmOpen(true); // Abre o diálogo de confirmação
+    }
   };
 
   const handleConfirmSave = () => {
     setProfilePic(tempProfilePic);
     setUserName(tempUserName);
+    setUserEmail(tempUserEmail);
+    setUserPhone(tempUserPhone);
     localStorage.setItem('ProfilePic', tempProfilePic);
     localStorage.setItem('UserName', tempUserName);
+    localStorage.setItem('UserEmail', tempUserEmail);
+    localStorage.setItem('UserPhone', tempUserPhone);
     setConfirmOpen(false); // Fecha o diálogo de confirmação
     handleCloseModal(); // Fecha o modal
+    
   };
 
   const handleCancelSave = () => {
     setConfirmOpen(false); // Fecha o diálogo de confirmação sem salvar
   };
+
 
   return (
     <Stack direction="row" spacing={0}>
@@ -144,6 +186,12 @@ export default function ImageAvatars() {
                 src={tempProfilePic} 
                 sx={{ width: 100, height: 100, margin: '10px auto' }}
               />
+              <input 
+                type="file" 
+                accept="image/*" 
+                onChange={handleImageChange} 
+                style={{ marginTop: 10 }}
+              />
               <TextField
                 value={tempUserName}
                 onChange={handleNameChange}
@@ -153,11 +201,23 @@ export default function ImageAvatars() {
                 sx={{ mt: 2 }}
                 label="Nome do Usuário"
               />
-              <input 
-                type="file" 
-                accept="image/*" 
-                onChange={handleImageChange} 
-                style={{ marginTop: 10 }}
+              <TextField
+                value={tempUserEmail}
+                onChange={handleEmailChange}
+                variant="outlined"
+                margin="normal"
+                fullWidth
+                sx={{ mt: 2 }}
+                label="Email do Usuário"
+              />
+              <TextField
+                value={tempUserPhone}
+                onChange={handlePhoneChange}
+                variant="outlined"
+                margin="normal"
+                fullWidth
+                sx={{ mt: 2 }}
+                label="Telefone do Usuário"
               />
               <Button 
                 variant="contained" 
