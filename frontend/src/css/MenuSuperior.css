@@ -34,9 +34,13 @@
 }
 
 .superior-menu a:hover {
-    color: #f39c12;
+    color: #235ddb;
 }
 
+
+.bell-icon{
+    margin-left: 150%;
+}
 /* Avatar no canto direito */
 .avatar {
     margin-left: auto; /* Empurra o avatar para a extrema direita */
