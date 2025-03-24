@@ -12,7 +12,6 @@ root.render(
   <React.StrictMode>
     <Router>  {/* Envolvendo a aplicação com o Router */}
       <App />
-      <Home />
     </Router>
   </React.StrictMode>
 );

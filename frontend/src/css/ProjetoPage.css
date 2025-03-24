@@ -1,0 +1,34 @@
+.container {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    padding: 20px;    
+  }
+
+
+.container-detalhes {
+    font-family: Arial, sans-serif;
+    text-align: left;
+    margin-top: 100px;
+}
+
+.box-informações {
+    background-color: #f4f4f4;
+    border-radius: 8px;
+    width: 400px;
+    padding: 100px;
+    
+  }
+
+  .container-calendario {
+    font-family: Arial, sans-serif;
+    text-align: left;
+    margin-top: 150px;
+}
+
+.calendario{
+    background-color: #f4f4f4;
+    border-radius: 8px;
+    width: 400px;
+    padding: 100px;
+    
+}

@@ -4,8 +4,9 @@ use gestum;
 
 create table usuarios
 (id_usuario INT PRIMARY KEY auto_increment,
+avatar longblob,
 nome_usuario VARCHAR (50) NOT NULL,
-email_usuario VARCHAR (80) NOT NULL,
+email_usuario VARCHAR (80) NOT NULL unique,
 senha_usuario VARCHAR (80) NOT NULL
 );
 create table projetos(
@@ -24,3 +25,7 @@ FOREIGN KEY(id_usuario) REFERENCES usuarios(id_usuario),
 FOREIGN KEY(id_projeto) REFERENCES projetos(id_projeto),
 colaborador boolean
 );
+
+select * from usuarios;
+
+

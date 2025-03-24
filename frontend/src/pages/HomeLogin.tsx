@@ -11,12 +11,15 @@ const Home = () => {
     { id: 1, nome: "Projeto A", descricao: "Descrição do Projeto A", responsavel: "Maria",dataini:"10/03/2024",datafim:"20/03/2024"},
     { id: 2, nome: "Projeto B", descricao: "Descrição do Projeto B", responsavel: "João",dataini:"10/03/2025",datafim:"20/03/2025"}
   ]);
-
   const [currentDate] = useState(new Date().toISOString().substr(0,10))
 
 
+  const navigate = useNavigate();
 
-
+  const navegarParaProjeto = (id: number) => {
+    navigate(`/projeto/${id}`);
+  };
+  
   type Projeto = {
     id:number
     nome:string
@@ -143,7 +146,8 @@ const Home = () => {
   
     <div className="lista-projetos">
           {projetos.map((projeto) => (
-            <div key={projeto.id} className="projeto">
+
+            <div key={projeto.id} className="projeto" onClick={() => navegarParaProjeto(projeto.id)} style={{ cursor: "pointer" }}>
               <div className="projeto-header">
               <button className="botao-modal" onClick={(e) => { e.stopPropagation();
                abrirModalDetalhes(projeto) 

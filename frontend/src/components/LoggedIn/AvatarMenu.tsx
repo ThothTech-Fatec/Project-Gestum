@@ -15,7 +15,7 @@ import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
-import { signUp, Login} from '../services/auth.ts'; // Importe as funções signUp e Login
+import { signUp, Login} from '../services/auth.ts'; 
 
 export default function ImageAvatars() {
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
@@ -41,7 +41,24 @@ export default function ImageAvatars() {
   const [tempUserName, setTempUserName] = React.useState(userName);
   const [tempProfilePic, setTempProfilePic] = React.useState<string | null>(profilePic);
 
+
   const open = Boolean(anchorEl);
+  
+
+  const [editModalOpen, setEditModalOpen] = React.useState(false);
+
+// Função para abrir o modal de edição
+const handleOpenEditModal = () => {
+  setTempUserName(userName);
+  setTempProfilePic(profilePic);
+  setModalOpen(false); // Fecha o modal de visualização
+  setEditModalOpen(true); // Abre o modal de edição
+};
+
+const handleCloseEditModal = () => {
+  setEditModalOpen(false);
+  setModalOpen(true); // Reabre o modal de visualização
+};
 
   const handleNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setTempUserName(event.target.value); // Atualiza o estado temporário
@@ -59,6 +76,9 @@ export default function ImageAvatars() {
     if (isLoggedIn) {
       setAnchorEl(event.currentTarget);
     } else {
+      setTempUserName('')
+      setUserEmail('')
+      setUserPassword('')
       setLoginModalOpen(true);
     }
   };
@@ -166,7 +186,6 @@ export default function ImageAvatars() {
 
   const handleOpenModal = () => {
     // Inicializa os estados temporários com os valores atuais
-    setTempUserName(userName);
     setTempProfilePic(profilePic);
     setModalOpen(true);
     handleClose();
@@ -189,7 +208,7 @@ export default function ImageAvatars() {
   };
 
   const handleSaveChanges = () => {
-    if (userEmail === '' || tempUserName === '') {
+    if (tempUserName === '') {
       alert('Preencha todos os campos');
     } else {
       setConfirmOpen(true);
@@ -203,6 +222,7 @@ export default function ImageAvatars() {
 
       // Cria um FormData para enviar os dados do usuário
       const formData = new FormData();
+      console.log(tempUserName);
       formData.append('userName', tempUserName); // Adiciona o nome temporário
       formData.append('userEmail', userEmail); // Adiciona o email do usuário (para identificação)
 
@@ -227,6 +247,7 @@ export default function ImageAvatars() {
       // Atualiza os estados principais com os valores temporários
       setUserName(tempUserName);
       setProfilePic(tempProfilePic);
+      setTempUserName('');
 
       // Busca a nova imagem do backend após salvar (se uma nova imagem foi enviada)
       if (file) {
@@ -234,6 +255,7 @@ export default function ImageAvatars() {
       }
 
       setConfirmOpen(false);
+      setEditModalOpen(false);
       handleCloseModal();
     } catch (error) {
       console.error("Erro ao salvar perfil:", error);
@@ -258,7 +280,7 @@ export default function ImageAvatars() {
         <>
           <Avatar
             alt={userName}
-            src={profilePic || undefined} // Usa o estado principal para a imagem
+            src={profilePic || undefined} 
             onClick={handleClick}
             style={{ cursor: 'pointer' }}
           />
@@ -365,7 +387,6 @@ export default function ImageAvatars() {
         </Box>
       </Modal>
 
-      {/* Modal de Perfil */}
       <Modal
         open={modalOpen}
         onClose={handleCloseModal}
@@ -387,27 +408,23 @@ export default function ImageAvatars() {
           }}
         >
           <Typography id="profile-modal" variant="h6" component="h2">
-            Perfil do Usuário
+            Meu Perfil
           </Typography>
           <Avatar
-            alt={tempUserName} // Usa o estado temporário para o nome
-            src={tempProfilePic || undefined} // Usa o estado temporário para a imagem
+            alt={userName}
+            src={profilePic || undefined}
             sx={{ width: 100, height: 100, margin: '10px auto' }}
           />
-          <input
-            type="file"
-            accept="image/*"
-            onChange={handleImageChange}
-            style={{ marginTop: 10 }}
-          />
           <TextField
-            value={tempUserName} // Usa o estado temporário para o nome
-            onChange={handleNameChange}
+            value={userName}
             variant="outlined"
             margin="normal"
             fullWidth
             sx={{ mt: 2 }}
             label="Nome do Usuário"
+            InputProps={{
+              readOnly: true,
+            }}
           />
           <TextField
             value={userEmail}
@@ -417,8 +434,69 @@ export default function ImageAvatars() {
             sx={{ mt: 2 }}
             label="Email do Usuário"
             InputProps={{
-              readOnly: true, // Torna o campo de email somente leitura
+              readOnly: true,
             }}
+          />
+          <Button
+            variant="contained"
+            sx={{ mt: 2, mr: 2 }}
+            onClick={handleOpenEditModal}
+          >
+            Editar Perfil
+          </Button>
+          <Button
+            variant="outlined"
+            sx={{ mt: 2 }}
+            onClick={handleCloseModal}
+          >
+            Fechar
+          </Button>
+        </Box>
+      </Modal>
+
+      {/* Modal de Edição do Perfil */}
+      <Modal
+        open={editModalOpen}
+        onClose={handleCloseEditModal}
+        aria-labelledby="edit-profile-modal"
+        aria-describedby="edit-profile-modal-description"
+      >
+        <Box
+          sx={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: 300,
+            bgcolor: 'background.paper',
+            boxShadow: 24,
+            p: 4,
+            borderRadius: 2,
+            textAlign: 'center',
+          }}
+        >
+          <Typography id="edit-profile-modal" variant="h6" component="h2">
+            Editar Perfil
+          </Typography>
+          <Avatar
+            alt={tempUserName}
+            src={tempProfilePic || undefined}
+            sx={{ width: 100, height: 100, margin: '10px auto' }}
+          />
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleImageChange}
+            style={{ marginTop: 10 }}
+          />
+          <TextField
+            value={tempUserName}
+            onChange={handleNameChange}
+            variant="outlined"
+            margin="normal"
+            fullWidth
+            sx={{ mt: 2 }}
+            label="Nome do Usuário"
           />
           <Button
             variant="contained"
@@ -430,9 +508,9 @@ export default function ImageAvatars() {
           <Button
             variant="outlined"
             sx={{ mt: 2 }}
-            onClick={handleCloseModal}
+            onClick={() => setEditModalOpen(false)}
           >
-            Fechar
+            Cancelar
           </Button>
         </Box>
       </Modal>

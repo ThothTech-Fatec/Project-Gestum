@@ -30,7 +30,6 @@
     text-decoration: none;
     font-size: 18px;
     font-weight: bold;
-    transition: color 0.3s;
 }
 
 .superior-menu a:hover {
@@ -38,9 +37,6 @@
 }
 
 
-.bell-icon{
-    margin-left: 150%;
-}
 /* Avatar no canto direito */
 .avatar {
     margin-left: auto; /* Empurra o avatar para a extrema direita */
