@@ -1,14 +1,20 @@
 import React from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import Home from './pages/HomeLogin.tsx';
+import ProjetoPage from './pages/ProjetoPage.tsx'
+import Atividades from './pages/Atividades.tsx'
+
+
 
 function App() {
   return (
-    <Router>
       <Routes>
-        <Route path="/home" component={Home} />
+        <Route path="/" element={<Home />} />
+        <Route path="/projeto/:id" element={<ProjetoPage />} />
+        <Route path="/atividades" element={<Atividades />} />
+
       </Routes>
-    </Router>
+
   );
 }
 

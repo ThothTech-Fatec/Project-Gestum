@@ -1,0 +1,111 @@
+.container {
+    font-family: Arial, sans-serif;
+    padding: 20px;
+}
+
+/* Cabeçalho */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #222;
+    color: white;
+    padding: 10px 20px;
+}
+
+/* Informações do usuário */
+.user-info {
+    display: flex;
+    align-items: center;
+}
+
+.user-info p {
+    margin-right: 10px;
+}
+
+.user-img {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+}
+
+/* Título principal */
+h1 {
+    margin: 0;
+}
+
+/* Seções */
+.minhas-atividades,
+.atividades-gerais {
+    margin-top: 20px;
+    
+}
+
+/* Ajuste para título e botão na mesma linha */
+.titulo-atividades {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* Botão "Nova Atividade" */
+.nova-atividade {
+    background-color: #4caf50;
+    color: white;
+    border: none;
+    padding: 10px;
+    cursor: pointer;
+    border-radius: 5px;
+}
+
+/* Estilização das atividades */
+.atividade {
+  display: flex;
+  background: #f5f5f5;
+  padding: 15px;
+  border-radius: 30px;
+  margin: 10px auto 0; /* Top 10px, horizontal auto, bottom 0 */
+  width: fit-content; /* ou uma largura específica como 80% */
+  justify-content: space-between;
+}
+
+/* Alinhamento do título das atividades à esquerda */
+.atividade h3 {
+    text-align: left;
+}
+
+/* Estilização específica para atividades gerais */
+.atividade-geral {
+    background: #2c3e50;
+    color: white;
+}
+
+/* Botão "Participar" */
+.participar {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+/* Ajuste para alinhar "Responsáveis -" e os ícones */
+.responsaveis {
+    display: flex;
+}
+
+.responsaveis-texto {
+    margin-right: 10px;
+}
+
+@media (max-width: 600px) {
+  .responsaveis {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .responsaveis .MuiTypography-root {
+    margin-bottom: 8px;
+  }
+}

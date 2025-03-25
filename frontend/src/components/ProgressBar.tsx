@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import "../css/ProgressBar.css"; // Importando o CSS
+import "../css/ProgressBar.css"; 
 
 const ProgressBar = () => {
   const [progress, setProgress] = useState(0);

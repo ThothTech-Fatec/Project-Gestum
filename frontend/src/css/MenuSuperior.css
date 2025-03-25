@@ -30,12 +30,12 @@
     text-decoration: none;
     font-size: 18px;
     font-weight: bold;
-    transition: color 0.3s;
 }
 
 .superior-menu a:hover {
-    color: #f39c12;
+    color: #235ddb;
 }
+
 
 /* Avatar no canto direito */
 .avatar {
