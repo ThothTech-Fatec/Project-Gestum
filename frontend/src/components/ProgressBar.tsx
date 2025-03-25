@@ -1,13 +1,18 @@
-import React, { useState } from "react";
-import "../css/ProgressBar.css"; 
+// src/components/ProgressBar.tsx
+import React from 'react';
 
-const ProgressBar = () => {
-  const [progress, setProgress] = useState(0);
+interface ProgressBarProps {
+  progress: number;
+}
 
+const ProgressBar: React.FC<ProgressBarProps> = ({ progress }) => {
   return (
     <div className="progress-container">
-      <div className="progress-bar">
-        <div className="progress-fill" style={{ width: `${progress}%` }}></div>
+      <div 
+        className="progress-bar" 
+        style={{ width: `${progress}%` }}
+      >
+        {progress}%
       </div>
     </div>
   );

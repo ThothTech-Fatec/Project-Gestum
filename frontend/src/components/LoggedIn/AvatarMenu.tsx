@@ -129,6 +129,7 @@ const handleCloseEditModal = () => {
       });
   
       const data = await response.json();
+      
   
       // Verifica se a resposta contém um erro
       if (!response.ok) {
@@ -136,8 +137,11 @@ const handleCloseEditModal = () => {
       }
   
       // Armazena os dados do usuário no localStorage
+      localStorage.setItem('UserID', data.id_usuario)
       localStorage.setItem('UserName', data.nome_usuario);
       localStorage.setItem('UserEmail', data.email_usuario);
+      localStorage.setItem('token', 'true')
+      console.log(data.id_usuario)
       localStorage.setItem('Logado', 'true');
   
       // Atualiza o estado
