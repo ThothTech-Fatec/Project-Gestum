@@ -1,34 +1,83 @@
 .container {
     font-family: Arial, sans-serif;
     text-align: center;
-    padding: 20px;    
   }
-
 
 .container-detalhes {
     font-family: Arial, sans-serif;
     text-align: left;
-    margin-top: 100px;
+    margin-top: 80px;
+    width: 100px;
 }
 
 .box-informações {
     background-color: #f4f4f4;
     border-radius: 8px;
     width: 400px;
-    padding: 100px;
+    padding: 40px;
+    text-align: center;
+    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
     
   }
 
   .container-calendario {
     font-family: Arial, sans-serif;
-    text-align: left;
-    margin-top: 150px;
+    text-align: center;
+    margin-left: 67%;
+    position: absolute;  
+    top: 100px;
+    right:450px;
 }
 
 .calendario{
     background-color: #f4f4f4;
     border-radius: 8px;
     width: 400px;
-    padding: 100px;
-    
+    padding: 40px;
+    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+
+}
+
+.container-progresso{
+  font-family: Arial, sans-serif;
+  text-align: left;
+  width: 85px;
+  position: absolute;
+  top: 360px;
+  left: 20px;
+}
+
+.progresso{
+  background-color: #f4f4f4;
+  border-radius: 8px;
+  width: 400px;
+  padding: 60px;
+  width: 50px;
+  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+
+}
+
+.container-notificacao{
+  font-family: Arial, sans-serif;
+  text-align: center;
+  width: 85px;
+  position: absolute;
+  left: 1200px;
+  bottom: 25px;
+}
+
+.notificacao{
+  background-color: #f4f4f4;
+  border-radius: 8px;
+  padding: 60px;
+  width: 150px;
+  height: 500px;
+  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+
+}
+
+
+
+html, body {
+  overflow: hidden;
 }

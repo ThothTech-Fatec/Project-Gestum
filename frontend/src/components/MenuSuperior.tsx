@@ -13,7 +13,7 @@ import { FiActivity } from "react-icons/fi";
 const SuperiorMenu = () => {
   const location = useLocation();
 
-  const isProjetoPage = location.pathname.startsWith("/projeto") || location.pathname.startsWith("/Atividades");
+  const isProjetoPage = location.pathname.startsWith("/projeto") || location.pathname.startsWith("/Atividades") || location.pathname.startsWith("/Participantes");
 
   return (
     <nav className="superior-menu">
@@ -33,7 +33,7 @@ const SuperiorMenu = () => {
       {isProjetoPage && (
         <ul>
           <li>
-            <Link to="/ProjetoPage">
+            <Link to="/">
               <GoProjectSymlink className="project-icon" />
             </Link>
           </li>
