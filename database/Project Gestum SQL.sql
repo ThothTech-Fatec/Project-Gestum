@@ -10,17 +10,6 @@ email_usuario VARCHAR (80) NOT NULL unique,
 senha_usuario VARCHAR (80) NOT NULL
 );
 
-CREATE TABLE notificacoes (
-    id_notificacao INT PRIMARY KEY AUTO_INCREMENT,
-    id_usuario INT NOT NULL,  -- Referência para o usuário que recebeu a notificação
-    id_projeto INT,  -- Pode ser NULL caso a notificação não esteja ligada a um projeto específico
-    titulo VARCHAR(50) NOT NULL,
-    descricao VARCHAR(255) NOT NULL,
-    tipo ENUM('convite', 'atualizacao', 'comentario') NOT NULL,
-    lida BOOLEAN DEFAULT FALSE,  -- Indica se o usuário já viu a notificação
-    FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario),
-    FOREIGN KEY (id_projeto) REFERENCES projetos(id_projeto) ON DELETE CASCADE
-);
 
 create table projetos(
 id_projeto INT PRIMARY KEY auto_increment,
@@ -30,6 +19,18 @@ area_projeto VARCHAR(60) NOT NULL,
 progresso_projeto INT,
 data_inicio_proj datetime default current_timestamp ,
 data_fim_proj datetime 
+);
+
+CREATE TABLE notificacoes (
+    id_notificacao INT PRIMARY KEY AUTO_INCREMENT,
+    id_usuario INT NOT NULL, 
+    id_projeto INT,  
+    titulo VARCHAR(50) NOT NULL,
+    descricao VARCHAR(255) NOT NULL,
+    tipo ENUM('convite', 'atualizacao', 'comentario') NOT NULL,
+    lida BOOLEAN DEFAULT FALSE, 
+    FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario),
+    FOREIGN KEY (id_projeto) REFERENCES projetos(id_projeto) ON DELETE CASCADE
 );
 
 CREATE TABLE projetos_participantes (
@@ -56,10 +57,12 @@ CREATE TABLE responsaveis_atividade (
 	id_responsaveis_atividade INT PRIMARY KEY AUTO_INCREMENT,
     id_atividade INT, 
     id_responsavel INT,
-    FOREIGN KEY (id_atividade) REFERENCES projetos_atividade(id_atividade),
+    FOREIGN KEY (id_atividade) REFERENCES projetos_atividades(id_atividade),
     FOREIGN KEY (id_responsavel) REFERENCES usuarios(id_usuario)
 );
 
 select * from usuarios;
+
+
 
 

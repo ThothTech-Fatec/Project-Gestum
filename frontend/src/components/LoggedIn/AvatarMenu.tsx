@@ -149,6 +149,7 @@ const handleCloseEditModal = () => {
       setUserEmail(data.email_usuario);
       setIsLoggedIn(true);
       setLoginModalOpen(false);
+      window.location.reload();
     } catch (error) {
       console.error("Erro ao fazer login:", error);
       alert(error.message || 'Email ou senha incorretos.');
@@ -178,14 +179,23 @@ const handleCloseEditModal = () => {
   };
 
   const handleLogout = () => {
+    // Limpa os estados locais
     setUserName('');
-    setTempUserName('')
+    setTempUserName('');
     setUserEmail('');
     setUserPassword('');
     setProfilePic(null);
-    localStorage.setItem('Logado', 'false');
-    setIsLoggedIn(false);
     setAnchorEl(null);
+    
+    // Remove os dados do localStorage
+    localStorage.removeItem('UserID');
+    localStorage.setItem('Logado', 'false');
+    
+    // Atualiza o estado de login
+    setIsLoggedIn(false);
+    
+    // Força o refresh da página
+    window.location.reload();
   };
 
   const handleOpenModal = () => {
