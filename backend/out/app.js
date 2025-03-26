@@ -25,7 +25,7 @@ app.post('/alterprofile', upload.single('profilePic'), AlterProfile);
 // Rotas de projetos
 app.get('/user_projects', getUserProjects);
 app.post('/create_projects', createProject);
-app.get('/get_projectdetails/:id', getProjectDetails);
+app.get('/get_projectdetails', getProjectDetails);
 app.put('/update_project/:id', updateProject);
 app.delete('/delete_project/:id', deleteProject);
 app.post('/add_participant/:id', addParticipant);
