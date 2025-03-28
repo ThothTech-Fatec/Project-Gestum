@@ -15,7 +15,7 @@ const Atividades = () => {
       </main>
 
       <section className="minhas-atividades">
-        <h2>Minhas Atividades</h2>
+        <h2 className="h2_atividade">Minhas Atividades</h2>
         <button className="nova-atividade">Nova Atividade</button>
         
 
@@ -82,7 +82,7 @@ const Atividades = () => {
       </section>
 
       <section className="atividades-gerais">
-        <h2>Atividades Gerais</h2>
+        <h2 className="h2_atividade">Atividades Gerais</h2>
 
         <div className="atividade atividade-geral">
           <Grid container spacing={2} alignItems="center">

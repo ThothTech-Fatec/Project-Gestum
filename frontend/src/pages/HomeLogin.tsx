@@ -16,6 +16,7 @@ type Projeto = {
   data_fim_formatada?: string
   progresso_projeto?: number
   user_role?: string
+  nome_area?: string
 };
 
 const api = axios.create({
@@ -40,6 +41,12 @@ const Home = () => {
   const [datafimProjeto, setDatafimProjeto] = useState("");
   const [projetoSelecionado, setProjetoSelecionado] = useState<Projeto | null>(null);
 
+  const [areasAtuacao, setAreasAtuacao] = useState<{ id: number; nome: string }[]>([]);
+  const [novaArea, setNovaArea] = useState(""); // Para criar uma nova área
+  const [selectedArea, setSelectedArea] = useState<number | null>(null);  // Set it as a number
+
+
+    
   const [isLoggedIn, setIsLoggedIn] = useState(false); // Novo estado para controle de login
 
   // Formata para exibição (dd/mm/yyyy)
@@ -115,7 +122,7 @@ const Home = () => {
         data_fim_formatada: formatarDataParaExibicao(projeto.data_fim_proj)
       }));
   
-      console.log('Projetos recebidos:', response.data);
+      console.log('Projetos recebidos:', projetosFormatados);
       
       setProjetos(projetosFormatados);
     } catch (error) {
@@ -125,6 +132,21 @@ const Home = () => {
       setLoading(false);
     }
   }, [formatarDataParaExibicao]);
+
+  useEffect(() => {
+  const carregarAreasAtuacao = async () => {
+    try {
+      const response = await api.get('/area_atuacao'); 
+      setAreasAtuacao(response.data);
+    } catch (error) {
+      console.error('Erro ao carregar áreas de atuação:', error);
+      alert('Erro ao carregar áreas de atuação.');
+    }
+  };
+
+  carregarAreasAtuacao();
+}, []);
+
 
   // Carrega userId e verifica login ao montar o componente
   useEffect(() => {
@@ -149,6 +171,8 @@ const Home = () => {
   }, [navigate, carregarProjetos]);
 
   const navegarParaProjeto = (projeto: Projeto) => {
+    const projectID = `${projeto.id_projeto}`
+    localStorage.setItem('Id_Project', projectID)
     navigate(`/projeto/${projeto.id_projeto}`, {state: { projeto }});
   };
 
@@ -183,6 +207,7 @@ const Home = () => {
       setProjetos(projetosAtualizados);
       setModalAtualizar(false);
       alert('Projeto atualizado com sucesso!');
+      window.location.reload();
     } catch (error) {
       console.error('Erro ao atualizar projeto:', error);
       alert('Erro ao atualizar projeto');
@@ -239,7 +264,8 @@ const Home = () => {
         nome_projeto: nomeProjeto,
         descricao_projeto: descricaoProjeto,
         data_fim_proj: datafimProjeto,
-        userId: userId
+        userId: userId,
+        area_atuacao_id: selectedArea, 
       });
   
       const novoProjeto = {
@@ -250,7 +276,9 @@ const Home = () => {
         data_inicio_proj: formatarDataParaExibicao(new Date().toISOString()),
         data_fim_proj: formatarDataParaExibicao(datafimProjeto),
         user_role: 'responsavel',
-        progresso_projeto: 0
+        progresso_projeto: 0,
+        nome_area: areasAtuacao.find(area => area.id === selectedArea)?.nome || 'Não definida', // Adiciona o nome da área
+
       };
   
       setProjetos([...projetos, novoProjeto]);
@@ -305,22 +333,7 @@ const Home = () => {
           Faça login clicando no ícone de perfil no canto superior direito 
           para começar a criar e gerenciar seus projetos.
         </p>
-        <div className="project-examples">
-          <div className="example-project">
-            <h3>Desenvolvimento Web</h3>
-            <p>Um projeto exemplo de desenvolvimento web</p>
-            <div className="progress-bar-container">
-              <ProgressBar progress={45} />
-            </div>
-          </div>
-          <div className="example-project">
-            <h3>Projeto Exemplo 2</h3>
-            <p>Outro projeto exemplo mostrando as possibilidades</p>
-            <div className="progress-bar-container">
-              <ProgressBar progress={80} />
-            </div>
-          </div>
-        </div>
+        
       </div>
     </div>
   );
@@ -361,7 +374,7 @@ const Home = () => {
                           ...
                         </button>
                         <h2>{projeto.nome_projeto}</h2>
-                        <p>{projeto.descricao_projeto}</p>
+                        <p>{projeto.nome_area}</p>
                         <p>{projeto.responsavel}</p>
                         <p><strong>Data de Inicio: </strong>{projeto.data_inicio_formatada}</p>
                         <p><strong>Data de Entrega: </strong>{projeto.data_fim_formatada}</p>
@@ -370,6 +383,7 @@ const Home = () => {
                     </div>
                   ))
                 ) : (
+          
                   <div className="no-projects-message">
                     <h3>Você ainda não tem projetos</h3>
                     <p>Clique no botão acima para criar seu primeiro projeto</p>
@@ -387,12 +401,12 @@ const Home = () => {
             <button className="botao-fechar-proj" onClick={fecharModal}>
               x
             </button>
-            <h2>Detalhes do {projetoSelecionado.nome_projeto}</h2>  
+            <h2 className="titulo-modal" >Detalhes do {projetoSelecionado.nome_projeto}</h2>  
             <p><strong>Descrição:</strong> {projetoSelecionado.descricao_projeto}</p>
             <p><strong>Responsável:</strong> {projetoSelecionado.responsavel}</p>
             <p><strong>Data de Inicio:</strong> {projetoSelecionado.data_inicio_proj}</p>
             <p><strong>Data de Entrega:</strong> {projetoSelecionado.data_fim_proj}</p>
-            <div style={{ margin: '20px 0' }}>
+            <div style={{ margin: '20px 0', width: 'auto' }}>
               <ProgressBar progress={projetoSelecionado.progresso_projeto || 0} />
             </div>
             <div className="botoes">

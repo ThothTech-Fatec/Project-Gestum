@@ -1,6 +1,6 @@
 import React from "react";
 import "../css/MenuSuperior.css";
-import { useLocation } from "react-router-dom";
+import { useLocation , useParams } from "react-router-dom";
 import { Link } from "react-router-dom";
 import ImageAvatars from "./LoggedIn/AvatarMenu.tsx";
 import { IoHomeOutline } from "react-icons/io5";
@@ -11,7 +11,16 @@ import { MdOutlinePeople } from "react-icons/md";
 import { FiActivity } from "react-icons/fi";
 
 const SuperiorMenu = () => {
+  const { id } = useParams(); 
   const location = useLocation();
+  const projeto = location.state?.projeto;
+  
+
+  const idProjeto = parseInt(localStorage.getItem("Id_Project") || "0");
+  console.log(idProjeto)
+
+
+
 
   const isProjetoPage = location.pathname.startsWith("/projeto") || location.pathname.startsWith("/Atividades") || location.pathname.startsWith("/Participantes");
 
@@ -33,17 +42,17 @@ const SuperiorMenu = () => {
       {isProjetoPage && (
         <ul>
           <li>
-            <Link to="/">
+            <Link to={`/projeto/${idProjeto}`} state={{ projeto: projeto }}>
               <GoProjectSymlink className="project-icon" />
             </Link>
           </li>
           <li>
-            <Link to="/Atividades">
+            <Link to="/Atividades" state={{ projeto: projeto }}>
               <FaBook className="atividade-icon" />
             </Link>
           </li>
           <li>
-            <Link to="/Participantes">
+            <Link to="/Participantes" state={{ projeto: projeto }}>
               <MdOutlinePeople className="adicionar-icon" />
             </Link>
           </li>
