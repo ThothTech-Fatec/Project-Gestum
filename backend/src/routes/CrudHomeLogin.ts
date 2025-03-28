@@ -38,7 +38,7 @@ export const createProject = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Dados incompletos' });
     }
 
-    const area_projeto = 'teste';
+    const area_projeto = 1;
     
     // Iniciar transação
     await connection.beginTransaction();
@@ -87,19 +87,22 @@ export const getUserProjects = async (req: Request, res: Response) => {
         p.nome_projeto,
         p.descricao_projeto,
         p.area_projeto,
+        pa.area_atuacao as nome_area,  -- Adicionando o nome da área
         DATE_FORMAT(p.data_inicio_proj, '%d/%m/%Y') as data_inicio_proj,
         DATE_FORMAT(p.data_fim_proj, '%d/%m/%Y') as data_fim_proj,
         p.progresso_projeto,
         pp.tipo as user_role 
       FROM projetos p
       JOIN projetos_participantes pp ON p.id_projeto = pp.id_projeto
+      LEFT JOIN projetos_areas pa ON p.area_projeto = pa.id_area  -- LEFT JOIN para incluir mesmo sem área definida
       WHERE pp.id_usuario = ?
       ORDER BY p.data_inicio_proj DESC
     `, [userId]);
     
     const formattedProjects = projects.map(project => ({
       ...project,
-      responsavel: project.user_role === 'responsavel' ? 'Você' : 'Equipe'
+      responsavel: project.user_role === 'responsavel' ? 'Você' : 'Equipe',
+      nome_area: project.nome_area || 'Sem área definida'  // Fallback para projetos sem área
     }));
     
     res.json(formattedProjects);
@@ -260,6 +263,32 @@ export const addParticipant = async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Erro ao adicionar participante:', error);
     res.status(500).json({ error: 'Falha ao adicionar participante' });
+  }
+};
+
+export const createAreaAtuacao = async (req: Request, res: Response) => {
+  try {
+    const { area_atuacao } = req.body;
+
+    if (!area_atuacao) {
+      return res.status(400).json({ error: 'O nome da área de atuação é obrigatório' });
+    }
+
+    console.log('Criando área de atuação:', area_atuacao);  // Log para depuração
+
+    // Inserir nova área de atuação na tabela projetos_areas
+    const [result] = await pool.query<ResultSetHeader>(
+      'INSERT INTO projetos_areas (area_atuacao) VALUES (?)',
+      [area_atuacao]
+    );
+
+    res.status(201).json({
+      message: 'Área de atuação criada com sucesso',
+      id_area: result.insertId
+    });
+  } catch (error) {
+    console.error('Erro ao criar área de atuação:', error);
+    res.status(500).json({ error: 'Erro interno ao criar área de atuação' });
   }
 };
 

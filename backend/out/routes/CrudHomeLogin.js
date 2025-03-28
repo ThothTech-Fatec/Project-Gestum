@@ -6,7 +6,7 @@ export const createProject = async (req, res) => {
         if (!nome_projeto || !descricao_projeto || !data_fim_proj || !userId) {
             return res.status(400).json({ error: 'Dados incompletos' });
         }
-        const area_projeto = 'teste';
+        const area_projeto = 1;
         // Iniciar transação
         await connection.beginTransaction();
         // 1. Criar o projeto na tabela projetos
@@ -49,16 +49,19 @@ export const getUserProjects = async (req, res) => {
         p.nome_projeto,
         p.descricao_projeto,
         p.area_projeto,
+        pa.area_atuacao as nome_area,  -- Adicionando o nome da área
         DATE_FORMAT(p.data_inicio_proj, '%d/%m/%Y') as data_inicio_proj,
         DATE_FORMAT(p.data_fim_proj, '%d/%m/%Y') as data_fim_proj,
         p.progresso_projeto,
         pp.tipo as user_role 
       FROM projetos p
       JOIN projetos_participantes pp ON p.id_projeto = pp.id_projeto
+      LEFT JOIN projetos_areas pa ON p.area_projeto = pa.id_area  -- LEFT JOIN para incluir mesmo sem área definida
       WHERE pp.id_usuario = ?
       ORDER BY p.data_inicio_proj DESC
     `, [userId]);
-        const formattedProjects = projects.map(project => (Object.assign(Object.assign({}, project), { responsavel: project.user_role === 'responsavel' ? 'Você' : 'Equipe' })));
+        const formattedProjects = projects.map(project => (Object.assign(Object.assign({}, project), { responsavel: project.user_role === 'responsavel' ? 'Você' : 'Equipe', nome_area: project.nome_area || 'Sem área definida' // Fallback para projetos sem área
+         })));
         res.json(formattedProjects);
     }
     catch (error) {

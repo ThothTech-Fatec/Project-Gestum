@@ -11,6 +11,13 @@
     align-items: center;
 }
 
+@media (max-width: 400px) {
+    .superior-menu{
+        padding: 15px 0px;
+    }
+
+}
+
 /* Ajusta a lista de navegação */
 .superior-menu ul {
     list-style: none;
