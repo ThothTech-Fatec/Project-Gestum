@@ -134,14 +134,14 @@ As seguintes ferramentas, linguagens, bibliotecas e tecnologias foram usadas na 
     title="TypeScript"
     style="display: inline-block; margin: 0 auto; width: 60px"></th>
      <th><img
-    src="https://user-images.githubusercontent.com/76211125/227503111-49bb0b02-2f06-4696-82e6-fbd8d0daed21.png"
-    alt="Alt text"
-    title="HTML5"
-    style="display: inline-block; margin: 0 auto; width: 60px"></th>
-     <th><img
     src="https://user-images.githubusercontent.com/76211125/227503103-bb7005d7-5f2f-46e4-adb5-92ef19ce677d.png"
     alt="Alt text"
     title="CSS3"
+    style="display: inline-block; margin: 0 auto; width: 60px"></th>
+    <th><img
+    src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/jira/jira-original.svg"
+    alt="Alt text"
+    title="Jira"
     style="display: inline-block; margin: 0 auto; width: 60px"></th>
   </thead>
 
@@ -152,8 +152,9 @@ As seguintes ferramentas, linguagens, bibliotecas e tecnologias foram usadas na 
     <td>VSCode</td>
     <td>JavaScript</td>
     <td>Typescript</td>
-    <td>HTML5</td>
     <td>CSS3</td>
+    <td>Jira</td>
+
   </tbody>
 
 </table>
