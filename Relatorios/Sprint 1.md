@@ -37,10 +37,6 @@ Testar edição e exclusão de projetos|❌
     Visual Studio Code 
  </p>
 
- * <p>
-    <img align="left" title="html5-logo" height="30px" src="https://user-images.githubusercontent.com/76211125/227503111-49bb0b02-2f06-4696-82e6-fbd8d0daed21.png"/>  
-    HTML5 
- </p>
 
  * <p>
     <img align="left" title="css3-logo" height="30px" src="https://user-images.githubusercontent.com/76211125/227503103-bb7005d7-5f2f-46e4-adb5-92ef19ce677d.png"/>  
