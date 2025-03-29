@@ -61,6 +61,11 @@ Testar edição e exclusão de projetos|✅
     alt="Alt text"
     title="CSS3"
     style="display: inline-block; margin: 0 auto; width: 60px"></th>
+      <th><img
+    src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/jira/jira-original.svg"
+    alt="Alt text"
+    title="Jira"
+    style="display: inline-block; margin: 0 auto; width: 60px"></th>
   </thead>
 
   <tbody>
@@ -71,6 +76,7 @@ Testar edição e exclusão de projetos|✅
     <td>JavaScript</td>
     <td>Typescript</td>
     <td>CSS3</td>
+    <td>Jira</td>
   </tbody>
 
 </table>
