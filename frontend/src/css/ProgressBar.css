@@ -1,23 +1,54 @@
-.progress-container {
-    width: 270px;
-    padding: 15px;
-    text-align: center;
-  }
-  
-  .progress-bar {
-    background: #eee;
-    border-radius: 5px;
-    overflow: hidden;
-    height: 20px;
-    width: 80%;
-  }
-  
-  .progress-fill {
-    height: 100%;
-    background: #4caf50;
-    transition: width 0.3s ease-in-out;
-  }
+/* PROGRESS BAR STYLES */
+.progress-bar-container {
+  width: 100%;
+  margin: 8px 0;
+  position: relative;
+}
 
-  
+.progress-bar-fill {
+  position: relative;
+  overflow: hidden;
+}
 
+/* Animation for the progress bar */
+.progress-bar-fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: linear-gradient(
+    -45deg,
+    rgba(255, 255, 255, 0.2) 25%,
+    transparent 25%,
+    transparent 50%,
+    rgba(255, 255, 255, 0.2) 50%,
+    rgba(255, 255, 255, 0.2) 75%,
+    transparent 75%,
+    transparent
+  );
+  background-size: 20px 20px;
+  animation: progressBarStripes 1s linear infinite;
+  border-radius: inherit;
+}
+
+@keyframes progressBarStripes {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 20px 0;
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .progress-bar-container {
+    height: 14px;
+  }
   
+  .progress-bar-fill {
+    font-size: 10px;
+  }
+}

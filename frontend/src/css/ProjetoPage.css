@@ -39,9 +39,11 @@
   composes: card;
   grid-column: 1 / 2;
   grid-row: 1 / 2;
-  background-color: #cfdbe2;
+  background-color: #f3f9ff;
   border-radius: 9px;
   padding: 20px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 
+  0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
 .project-info h1 {
@@ -67,13 +69,12 @@
   font-weight: 600;
   position: sticky;
   top: 0;
-  background: white;
   padding-bottom: 10px;
   z-index: 1;
 }
 
 .notification-item {
-  background: #f8fafc;
+  background: #f3f9ff;
   border-left: 4px solid #3b82f6;
   padding: 14px 16px;
   border-radius: 8px;
@@ -91,16 +92,19 @@
   composes: card;
   grid-column: 1 / 2;
   grid-row: 2 / 3;
+  padding-bottom: 20px;
+  background: #f3f9ff;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 
+  0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
 /* Progresso */
 .progress-container {
   composes: card;
-  position: absolute;
-  right: 40px;
-  bottom: 40px;
-  width: 240px;
+  width: 100%;
   text-align: center;
+  margin-top: 24px;
+  grid-column: 1 / -1;
 }
 
 .progress-container h2 {

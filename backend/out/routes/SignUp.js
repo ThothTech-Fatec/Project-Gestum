@@ -8,7 +8,7 @@ export const cadastrarUsuario = async (req, res) => {
     }
     try {
         // Criptografa a senha antes de salvar no banco
-        const saltRounds = 10; // Número de rounds para gerar o salt
+        const saltRounds = 10; // Número de rounds
         const hashedPassword = await bcrypt.hash(password, saltRounds);
         // Insere o usuário no banco de dados com a senha criptografada
         const [result] = await pool.query("INSERT INTO usuarios (nome_usuario, email_usuario, senha_usuario) VALUES (?, ?, ?)", [name, email, hashedPassword]);

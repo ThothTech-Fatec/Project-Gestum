@@ -2,7 +2,7 @@ create database gestum;
 
 use gestum;
 
-create table usuarios
+CREATE TABLE usuarios
 (id_usuario INT PRIMARY KEY auto_increment,
 avatar longblob,
 nome_usuario VARCHAR (50) NOT NULL,
@@ -11,14 +11,21 @@ senha_usuario VARCHAR (80) NOT NULL
 );
 
 
-create table projetos(
+CREATE TABLE areas_atuacao (
+  id INT auto_increment PRIMARY KEY,
+  nome VARCHAR(100) NOT NULL UNIQUE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE projetos(
 id_projeto INT PRIMARY KEY auto_increment,
 nome_projeto VARCHAR (50) NOT NULL,
 descricao_projeto VARCHAR(300) NOT NULL,
-area_projeto VARCHAR(60) NOT NULL,
+area_atuacao_id INT,
 progresso_projeto INT,
 data_inicio_proj datetime default current_timestamp ,
-data_fim_proj datetime 
+data_fim_proj datetime,
+FOREIGN KEY (area_atuacao_id) REFERENCES areas_atuacao(id)
 );
 
 CREATE TABLE notificacoes (
@@ -62,6 +69,8 @@ CREATE TABLE responsaveis_atividade (
 );
 
 select * from usuarios;
+
+select * from projetos;
 
 
 

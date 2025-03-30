@@ -1,9 +1,8 @@
-// services/auth.ts
 import axios from 'axios';
 
-// Configura o Axios para usar a URL do backend
+
 const api = axios.create({
-  baseURL: 'http://localhost:5000', // Substitua pela URL do seu backend
+  baseURL: 'http://localhost:5000',
   headers: {
     'Content-Type': 'application/json',
   },

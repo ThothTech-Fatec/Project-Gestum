@@ -5,28 +5,37 @@ interface ProgressBarProps {
   height?: number;
   showText?: boolean; 
   color?: string;
-  backgroundColor?: string; 
+  backgroundColor?: string;
+  textColor?: string;
+  borderRadius?: number;
+  transitionSpeed?: number;
 }
 
 const ProgressBar: React.FC<ProgressBarProps> = ({
   progress,
-  height = 20,
+  height = 16,
   showText = true,
-  color = '#4CAF50',
-  backgroundColor = '#e0e0e0'
+  color = '#2563eb', 
+  backgroundColor = '#e2e8f0',
+  textColor = '#ffffff',
+  borderRadius,
+  transitionSpeed = 300
 }) => {
   // Garante que o progresso esteja entre 0 e 100
   const clampedProgress = Math.min(100, Math.max(0, progress));
+  
+  // Calcula o borderRadius baseado na altura se não for fornecido
+  const calculatedBorderRadius = borderRadius ?? height / 2;
 
   return (
-    <div 
-      className="progress-container" 
+    <div className="progress-bar-container" 
       style={{
         width: '100%',
         backgroundColor,
-        borderRadius: `${height / 2}px`,
+        borderRadius: `${calculatedBorderRadius}px`,
         height: `${height}px`,
-        overflow: 'hidden'
+        overflow: 'hidden',
+        boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.1)'
       }}
       role="progressbar"
       aria-valuenow={clampedProgress}
@@ -34,7 +43,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
       aria-valuemax={100}
     >
       <div 
-        className="progress-bar" 
+        className="progress-bar-fill" 
         style={{ 
           width: `${clampedProgress}%`,
           backgroundColor: color,
@@ -42,11 +51,14 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
           display: 'flex',
           alignItems: 'center',
           justifyContent: showText ? 'flex-end' : 'center',
-          paddingRight: showText ? '8px' : '0',
-          color: '#fff',
+          paddingRight: showText ? '10px' : '0',
+          color: textColor,
           fontWeight: 'bold',
-          fontSize: `${Math.max(10, height * 0.6)}px`,
-          transition: 'width 0.3s ease-in-out'
+          fontSize: `${Math.max(10, height * 0.5)}px`,
+          transition: `width ${transitionSpeed}ms ease-in-out`,
+          borderRadius: clampedProgress === 100 ? 
+            `${calculatedBorderRadius}px` : 
+            `${calculatedBorderRadius}px 0 0 ${calculatedBorderRadius}px`
         }}
       >
         {showText && `${clampedProgress}%`}

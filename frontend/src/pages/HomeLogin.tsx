@@ -6,17 +6,23 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
 type Projeto = {
-  id_projeto: number
-  nome_projeto: string
-  descricao_projeto: string
-  responsavel: string
-  data_inicio_proj: string
-  data_fim_proj: string
-  data_inicio_formatada?: string
-  data_fim_formatada?: string
-  progresso_projeto?: number
-  user_role?: string
-  nome_area?: string
+  id_projeto: number;
+  nome_projeto: string;
+  descricao_projeto: string;
+  responsavel: string;
+  data_inicio_proj: string;
+  data_fim_proj: string;
+  data_inicio_formatada?: string;
+  data_fim_formatada?: string;
+  progresso_projeto?: number;
+  user_role?: string;
+  nome_area: string; 
+  area_atuacao_id?: number;
+};
+
+type AreaAtuacao = {
+  id: number;
+  nome: string;
 };
 
 const api = axios.create({
@@ -41,38 +47,35 @@ const Home = () => {
   const [datafimProjeto, setDatafimProjeto] = useState("");
   const [projetoSelecionado, setProjetoSelecionado] = useState<Projeto | null>(null);
 
-  const [areasAtuacao, setAreasAtuacao] = useState<{ id: number; nome: string }[]>([]);
-  const [novaArea, setNovaArea] = useState(""); // Para criar uma nova área
-  const [selectedArea, setSelectedArea] = useState<number | null>(null);  // Set it as a number
-
-
+  // Estados para áreas de atuação
+  const [areasAtuacao, setAreasAtuacao] = useState<AreaAtuacao[]>([]);
+  const [novaArea, setNovaArea] = useState("");
+  const [selectedArea, setSelectedArea] = useState<number | null>(null);
+  const [showNewAreaInput, setShowNewAreaInput] = useState(false);
     
-  const [isLoggedIn, setIsLoggedIn] = useState(false); // Novo estado para controle de login
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   // Formata para exibição (dd/mm/yyyy)
   const formatarDataParaExibicao = useCallback((dataString: string) => {
     if (!dataString) return '';
     
-    // Se já estiver no formato DD/MM/YYYY, retorna diretamente
     if (/^\d{2}\/\d{2}\/\d{4}$/.test(dataString)) {
       return dataString;
     }
     
     try {
-      // Tenta converter de YYYY-MM-DD para DD/MM/YYYY
       if (/^\d{4}-\d{2}-\d{2}/.test(dataString)) {
         const [year, month, day] = dataString.split('-');
         return `${day}/${month}/${year}`;
       }
       
-      // Tenta converter de outros formatos
       const date = new Date(dataString);
-      if (isNaN(date.getTime())) return dataString; // Retorna o original se inválido
+      if (isNaN(date.getTime())) return dataString;
       
       return date.toLocaleDateString('pt-BR');
     } catch (error) {
       console.error('Erro ao formatar data:', error);
-      return dataString; // Retorna o original em caso de erro
+      return dataString;
     }
   }, []);
 
@@ -80,19 +83,16 @@ const Home = () => {
   const formatarDataParaInput = useCallback((dataString: string) => {
     if (!dataString) return '';
     
-    // Se já estiver no formato YYYY-MM-DD, retorna diretamente
     if (/^\d{4}-\d{2}-\d{2}$/.test(dataString)) {
       return dataString;
     }
     
     try {
-      // Tenta converter de DD/MM/YYYY para YYYY-MM-DD
       if (/^\d{2}\/\d{2}\/\d{4}$/.test(dataString)) {
         const [day, month, year] = dataString.split('/');
         return `${year}-${month}-${day}`;
       }
       
-      // Tenta converter de outros formatos
       const date = new Date(dataString);
       if (isNaN(date.getTime())) return '';
       
@@ -103,50 +103,54 @@ const Home = () => {
     }
   }, []);
 
+  // Carrega áreas de atuação
+  const carregarAreasAtuacao = useCallback(async () => {
+    try {
+      const response = await api.get('/areas');
+      console.log(response.data);
+      setAreasAtuacao(response.data);
+    } catch (error) {
+      console.error('Erro ao carregar áreas de atuação:', error);
+    }
+  }, []);
+
   // Função para carregar projetos
   const carregarProjetos = useCallback(async (userId: string) => {
     try {
       setLoading(true);
-      const response = await api.get('/user_projects', {
+      const response = await api.get('/user_projects', { 
         params: { userId }
       });
       
+      console.log('Resposta da API:', response.data); 
+      
+      if (!response.data || !Array.isArray(response.data)) {
+        throw new Error('Formato de dados inválido');
+      }
+  
       const projetosFormatados = response.data.map((projeto: any) => ({
-        ...projeto,
+        id_projeto: projeto.id_projeto,
+        nome_projeto: projeto.nome_projeto,
+        descricao_projeto: projeto.descricao_projeto,
         responsavel: projeto.user_role === 'responsavel' ? 'Você' : 'Equipe',
-        // Mantemos o formato original vindo do backend
         data_inicio_proj: projeto.data_inicio_proj,
         data_fim_proj: projeto.data_fim_proj,
-        // Adicionamos campos formatados para exibição
         data_inicio_formatada: formatarDataParaExibicao(projeto.data_inicio_proj),
-        data_fim_formatada: formatarDataParaExibicao(projeto.data_fim_proj)
+        data_fim_formatada: formatarDataParaExibicao(projeto.data_fim_proj),
+        progresso_projeto: projeto.progresso_projeto || 0,
+        user_role: projeto.user_role,
+        nome_area: projeto.nome_area || 'Não definida',
+        area_atuacao_id: projeto.area_atuacao_id
       }));
   
-      console.log('Projetos recebidos:', projetosFormatados);
-      
       setProjetos(projetosFormatados);
     } catch (error) {
       console.error('Erro ao carregar projetos:', error);
-      alert('Erro ao carregar projetos');
+      alert('Erro ao carregar projetos. Verifique o console para detalhes.');
     } finally {
       setLoading(false);
     }
   }, [formatarDataParaExibicao]);
-
-  useEffect(() => {
-  const carregarAreasAtuacao = async () => {
-    try {
-      const response = await api.get('/area_atuacao'); 
-      setAreasAtuacao(response.data);
-    } catch (error) {
-      console.error('Erro ao carregar áreas de atuação:', error);
-      alert('Erro ao carregar áreas de atuação.');
-    }
-  };
-
-  carregarAreasAtuacao();
-}, []);
-
 
   // Carrega userId e verifica login ao montar o componente
   useEffect(() => {
@@ -167,8 +171,9 @@ const Home = () => {
     const id = loadUserId();
     if (id) {
       carregarProjetos(id);
+      carregarAreasAtuacao();
     }
-  }, [navigate, carregarProjetos]);
+  }, [navigate, carregarProjetos, carregarAreasAtuacao]);
 
   const navegarParaProjeto = (projeto: Projeto) => {
     const projectID = `${projeto.id_projeto}`
@@ -187,23 +192,33 @@ const Home = () => {
 
   const atualizarProjeto = async () => {
     if (!projetoSelecionado) return;
-
+  
+    // Verificar se os campos obrigatórios estão preenchidos
+    if (!projetoSelecionado.nome_projeto || !projetoSelecionado.descricao_projeto || 
+        !projetoSelecionado.data_fim_proj || !projetoSelecionado.area_atuacao_id) {
+      alert("Preencha todos os campos obrigatórios!");
+      return;
+    }
+  
     try {
       await api.put(`/update_project/${projetoSelecionado.id_projeto}`, {
         nome_projeto: projetoSelecionado.nome_projeto,
         descricao_projeto: projetoSelecionado.descricao_projeto,
         data_fim_proj: projetoSelecionado.data_fim_proj,
+        area_atuacao_id: projetoSelecionado.area_atuacao_id,
         userId
       });
-
+  
       const projetosAtualizados = projetos.map(proj => 
         proj.id_projeto === projetoSelecionado.id_projeto ? {
           ...projetoSelecionado,
-          data_inicio_proj: formatarDataParaExibicao(projetoSelecionado.data_inicio_proj),
-          data_fim_proj: formatarDataParaExibicao(projetoSelecionado.data_fim_proj)
+          data_inicio_formatada: formatarDataParaExibicao(projetoSelecionado.data_inicio_proj),
+          data_fim_formatada: formatarDataParaExibicao(projetoSelecionado.data_fim_proj),
+          nome_area: areasAtuacao.find(a => a.id === projetoSelecionado.area_atuacao_id)?.nome || 
+                    projetoSelecionado.nome_area
         } : proj
       );
-
+  
       setProjetos(projetosAtualizados);
       setModalAtualizar(false);
       alert('Projeto atualizado com sucesso!');
@@ -244,6 +259,28 @@ const Home = () => {
     setDescricaoProjeto("");
     setDatafimProjeto("");
     setProjetoSelecionado(null);
+    setShowNewAreaInput(false);
+    setNovaArea("");
+  };
+
+  // Função para criar nova área
+  const criarNovaArea = async () => {
+    if (novaArea.trim() === "") {
+      alert("Digite um nome para a nova área!");
+      return;
+    }
+
+    try {
+      const response = await api.post('/criar_area', { nome: novaArea });
+      setAreasAtuacao([...areasAtuacao, response.data]);
+      setSelectedArea(response.data.id);
+      setNovaArea("");
+      setShowNewAreaInput(false);
+      alert("Área criada com sucesso!");
+    } catch (error) {
+      console.error('Erro ao criar área:', error);
+      alert("Erro ao criar nova área");
+    }
   };
 
   const salvarProjeto = async () => {
@@ -251,7 +288,12 @@ const Home = () => {
       alert("Preencha todos os campos!");
       return;
     }
-  
+
+    if (!selectedArea) {
+      alert("Selecione uma área de atuação!");
+      return;
+    }
+
     try {
       const userId = localStorage.getItem('UserID');
       if (!userId) {
@@ -259,15 +301,17 @@ const Home = () => {
         navigate('/');
         return;
       }
-  
+
       const response = await api.post('/create_projects', {
         nome_projeto: nomeProjeto,
         descricao_projeto: descricaoProjeto,
         data_fim_proj: datafimProjeto,
         userId: userId,
-        area_atuacao_id: selectedArea, 
+        area_atuacao_id: selectedArea,
       });
-  
+
+      const areaSelecionada = areasAtuacao.find(area => area.id === selectedArea);
+
       const novoProjeto = {
         id_projeto: response.data.projectId,
         nome_projeto: nomeProjeto,
@@ -277,13 +321,13 @@ const Home = () => {
         data_fim_proj: formatarDataParaExibicao(datafimProjeto),
         user_role: 'responsavel',
         progresso_projeto: 0,
-        nome_area: areasAtuacao.find(area => area.id === selectedArea)?.nome || 'Não definida', // Adiciona o nome da área
-
+        nome_area: areaSelecionada?.nome || 'Não definida',
       };
-  
+
       setProjetos([...projetos, novoProjeto]);
       fecharModal();
       alert('Projeto criado com sucesso!');
+      window.location.reload();
     } catch (error) {
       console.error('Erro ao criar projeto:', error);
       alert('Erro ao criar projeto. Verifique os dados e tente novamente.');
@@ -315,12 +359,8 @@ const Home = () => {
       
       setModalAbertoProj(true);
     } catch (error) {
-      console.error('Detalhes do erro:', {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status
-      });
-      alert('Erro ao carregar detalhes do projeto. Verifique o console para mais informações.');
+      console.error('Detalhes do erro:', error);
+      alert('Erro ao carregar detalhes do projeto.');
     }
   };
 
@@ -333,7 +373,6 @@ const Home = () => {
           Faça login clicando no ícone de perfil no canto superior direito 
           para começar a criar e gerenciar seus projetos.
         </p>
-        
       </div>
     </div>
   );
@@ -341,7 +380,7 @@ const Home = () => {
   return (
     <div className="container">
       <SuperiorMenu />
-      <main>
+      <main style={{ marginTop: '100px' }}>
         {!isLoggedIn ? (
           <NotLoggedContent />
         ) : (
@@ -374,7 +413,9 @@ const Home = () => {
                           ...
                         </button>
                         <h2>{projeto.nome_projeto}</h2>
-                        <p>{projeto.nome_area}</p>
+                        <p className="area-projeto">
+                          {projeto.nome_area || 'Área não definida'}
+                        </p>
                         <p>{projeto.responsavel}</p>
                         <p><strong>Data de Inicio: </strong>{projeto.data_inicio_formatada}</p>
                         <p><strong>Data de Entrega: </strong>{projeto.data_fim_formatada}</p>
@@ -383,7 +424,6 @@ const Home = () => {
                     </div>
                   ))
                 ) : (
-          
                   <div className="no-projects-message">
                     <h3>Você ainda não tem projetos</h3>
                     <p>Clique no botão acima para criar seu primeiro projeto</p>
@@ -395,20 +435,24 @@ const Home = () => {
         )}
       </main>
 
+      {/* Modal de Detalhes do Projeto */}
       {modalAbertoProj && projetoSelecionado && (
         <div className="modal-overlay">
           <div className="modal-proj">
             <button className="botao-fechar-proj" onClick={fecharModal}>
-              x
+              &times;
             </button>
-            <h2 className="titulo-modal" >Detalhes do {projetoSelecionado.nome_projeto}</h2>  
+            <h2>Detalhes do {projetoSelecionado.nome_projeto}</h2>  
+            <p><strong>Área:</strong> {projetoSelecionado.nome_area}</p>
             <p><strong>Descrição:</strong> {projetoSelecionado.descricao_projeto}</p>
             <p><strong>Responsável:</strong> {projetoSelecionado.responsavel}</p>
-            <p><strong>Data de Inicio:</strong> {projetoSelecionado.data_inicio_proj}</p>
+            <p><strong>Data de Início:</strong> {projetoSelecionado.data_inicio_proj}</p>
             <p><strong>Data de Entrega:</strong> {projetoSelecionado.data_fim_proj}</p>
-            <div style={{ margin: '20px 0', width: 'auto' }}>
+            
+            <div className="progress-container">
               <ProgressBar progress={projetoSelecionado.progresso_projeto || 0} />
             </div>
+            
             <div className="botoes">
               <button className="excluir-proj-home" onClick={() => excluirProjeto(projetoSelecionado.id_projeto)}>
                 Excluir
@@ -421,39 +465,111 @@ const Home = () => {
         </div>
       )}
 
+      {/* Modal de Atualização de Projeto */}
       {modalAtualizar && projetoSelecionado && (
         <div className="modal-overlay">
           <div className="modal">
+            <button className="botao-fechar-proj" onClick={() => setModalAtualizar(false)}>
+              &times;
+            </button>
             <h2>Atualizar Projeto</h2>
-            <input
-              className="input-projeto"
-              type="text"
-              value={projetoSelecionado.nome_projeto}
-              onChange={(e) => setProjetoSelecionado({ 
-                ...projetoSelecionado, 
-                nome_projeto: e.target.value 
-              })}
-            />
-            <input
-              className="input-projeto"
-              value={projetoSelecionado.descricao_projeto}
-              onChange={(e) => setProjetoSelecionado({ 
-                ...projetoSelecionado, 
-                descricao_projeto: e.target.value 
-              })}
-            />
+            
+            <div className="input-container">
+              <label className="input-label">Nome do Projeto</label>
+              <input
+                type="text"
+                className="input-field"
+                value={projetoSelecionado.nome_projeto}
+                onChange={(e) => setProjetoSelecionado({ 
+                  ...projetoSelecionado, 
+                  nome_projeto: e.target.value 
+                })}
+                placeholder="Digite o nome do projeto"
+              />
+            </div>
+            
+            <div className="input-container">
+              <label className="input-label">Descrição</label>
+              <input
+                className="input-field"
+                value={projetoSelecionado.descricao_projeto}
+                onChange={(e) => setProjetoSelecionado({ 
+                  ...projetoSelecionado, 
+                  descricao_projeto: e.target.value 
+                })}
+                placeholder="Descreva o projeto"
+              />
+            </div>
+
+            {/* Seção para área de atuação com opção de criar nova área */}
+            <div className="input-container">
+              <label className="input-label">Área de Atuação</label>
+              {!showNewAreaInput ? (
+                <div className="area-selection">
+                  <select
+                    value={projetoSelecionado.area_atuacao_id || ""}
+                    onChange={(e) => setProjetoSelecionado({
+                      ...projetoSelecionado,
+                      area_atuacao_id: Number(e.target.value) || undefined
+                    })}
+                    className="input-field"
+                  >
+                    <option value="">Selecione uma área</option>
+                    {areasAtuacao.map((area) => (
+                      <option key={area.id} value={area.id}>
+                        {area.nome}
+                      </option>
+                    ))}
+                  </select>
+                  <button 
+                    type="button"
+                    className="botao-nova-area"
+                    onClick={() => setShowNewAreaInput(true)}
+                  >
+                    + Nova Área
+                  </button>
+                </div>
+              ) : (
+                <div className="new-area-container">
+                  <input
+                    type="text"
+                    value={novaArea}
+                    onChange={(e) => setNovaArea(e.target.value)}
+                    className="input-field"
+                    placeholder="Digite o nome da nova área"
+                  />
+                  <div className="area-buttons">
+                    <button
+                      type="button"
+                      className="botao-cancelar-area"
+                      onClick={() => setShowNewAreaInput(false)}
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="button"
+                      className="botao-salvar-area"
+                      onClick={criarNovaArea}
+                    >
+                      Salvar Área
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+            
             <div className="container-data">
-              <div className="campo-data">
-                <label>Data de Inicio</label>   
+              <div className="input-container">
+                <label className="input-label">Data de Início</label>
                 <input
                   type="text" 
                   value={projetoSelecionado.data_inicio_proj}
-                  className="input-dataini"
+                  className="input-field"
                   disabled
                 />
               </div>
-              <div className="campo-data">
-                <label>Data de Encerramento</label>   
+              <div className="input-container">
+                <label className="input-label">Data de Encerramento</label>
                 <input
                   type="date" 
                   value={projetoSelecionado.data_fim_proj}
@@ -461,65 +577,141 @@ const Home = () => {
                     ...projetoSelecionado,
                     data_fim_proj: e.target.value
                   })}
-                  className="input-datafim"
-                  min={currentDate} 
+                  className="input-field"
+                  min={currentDate}
                 />
               </div>
             </div>
-            <button className="atualizar-proj-home" onClick={atualizarProjeto}>
-              Salvar
-            </button>
-            <button className="excluir-proj-home" onClick={() => setModalAtualizar(false)}>
-              Cancelar
-            </button>
+            
+            <div className="botoes">
+              <button 
+                className="botao-fechar" 
+                onClick={() => setModalAtualizar(false)}
+              >
+                Cancelar
+              </button>
+              <button 
+                className="botao-salvar" 
+                onClick={atualizarProjeto}
+              >
+                Salvar Alterações
+              </button>
+            </div>
           </div>
         </div>
       )}
 
+      {/* Modal de Criação de Projeto */}
       {modalAberto && (
         <div className="modal-overlay">
           <div className="modal">
+            <button className="botao-fechar-proj" onClick={fecharModal}>
+              &times;
+            </button>
             <h2>Criar Novo Projeto</h2>
-            <input
-              type="text"
-              placeholder="Nome do Projeto"
-              value={nomeProjeto}
-              onChange={(e) => setNomeProjeto(e.target.value)}
-              className="input-projeto"
-            />
-            <input
-              placeholder="Descrição do Projeto"
-              value={descricaoProjeto}  
-              onChange={(e) => setDescricaoProjeto(e.target.value)}
-              className="input-projeto"
-            />
+            
+            <div className="input-container">
+              <label className="input-label">Nome do Projeto</label>
+              <input
+                type="text"
+                value={nomeProjeto}
+                onChange={(e) => setNomeProjeto(e.target.value)}
+                className="input-field"
+                placeholder="Digite o nome do projeto"
+              />
+            </div>
+            
+            <div className="input-container">
+              <label className="input-label">Descrição</label>
+              <input
+                value={descricaoProjeto}  
+                onChange={(e) => setDescricaoProjeto(e.target.value)}
+                className="input-field"
+                placeholder="Descreva o projeto"
+              />
+            </div>
+            
+            <div className="input-container">
+              <label className="input-label">Área de Atuação</label>
+              {!showNewAreaInput ? (
+                <div className="area-selection">
+                  <select
+                    value={selectedArea || ""}
+                    onChange={(e) => setSelectedArea(Number(e.target.value))}
+                    className="input-field"
+                  >
+                    <option value="">Selecione uma área</option>
+                    {areasAtuacao.map((area) => (
+                      <option key={area.id} value={area.id}>
+                        {area.nome}
+                      </option>
+                    ))}
+                  </select>
+                  <button 
+                    type="button"
+                    className="botao-nova-area"
+                    onClick={() => setShowNewAreaInput(true)}
+                  >
+                    + Nova Área
+                  </button>
+                </div>
+              ) : (
+                <div className="new-area-container">
+                  <input
+                    type="text"
+                    value={novaArea}
+                    onChange={(e) => setNovaArea(e.target.value)}
+                    className="input-field"
+                    placeholder="Digite o nome da nova área"
+                  />
+                  <div className="area-buttons">
+                    <button
+                      type="button"
+                      className="botao-cancelar-area"
+                      onClick={() => setShowNewAreaInput(false)}
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="button"
+                      className="botao-salvar-area"
+                      onClick={criarNovaArea}
+                    >
+                      Salvar Área
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+            
             <div className="container-data">
-              <div className="campo-data">
-                <label>Data de Inicio</label>   
+              <div className="input-container">
+                <label className="input-label">Data de Início</label>
                 <input
                   type="text" 
                   value={formatarDataParaExibicao(currentDate)}
-                  className="input-dataini"
+                  className="input-field"
                   disabled
                 />
               </div>
-              <div className="campo-data">
-                <label>Data de Entrega</label>   
+              <div className="input-container">
+                <label className="input-label">Data de Entrega</label>
                 <input
                   type="date" 
                   value={datafimProjeto}
                   onChange={(e) => setDatafimProjeto(e.target.value)}
-                  className="input-datafim"
+                  className="input-field"
                   min={currentDate} 
                 />
               </div>
             </div>
+            
             <div className="botoes">
-              <button className="botao-salvar" onClick={salvarProjeto}>
-                Salvar
-              </button>
               <button className="botao-fechar" onClick={fecharModal}>
-                Fechar
+                Cancelar
+              </button>
+              <button className="botao-salvar" onClick={salvarProjeto}>
+                Criar Projeto
               </button>
             </div>
           </div>

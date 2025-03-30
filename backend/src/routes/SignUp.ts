@@ -13,7 +13,7 @@ export const cadastrarUsuario = async (req: Request, res: Response) => {
 
     try {
         // Criptografa a senha antes de salvar no banco
-        const saltRounds = 10; // Número de rounds para gerar o salt
+        const saltRounds = 10; // Número de rounds
         const hashedPassword = await bcrypt.hash(password, saltRounds);
 
         // Insere o usuário no banco de dados com a senha criptografada
