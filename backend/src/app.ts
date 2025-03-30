@@ -12,14 +12,15 @@ import {
   deleteProject,
   addParticipant,
   removeParticipant
-} from './routes/CrudHomeLogin.js'; // Adicione esta linha
+} from './routes/CrudHomeLogin.js'; 
+import { buscarAreasAtuacao, criarAreaAtuacao } from './routes/Area_Atuacao.js';
 
 const app = express();
 
 // Configuração do CORS
 app.use(cors({
   origin: process.env.ORIGIN || 'http://localhost:3000',
-  methods: ['GET', 'POST', 'PUT', 'DELETE'], // Adicione PUT se necessário
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
   credentials: true,
 }));
 
@@ -45,6 +46,8 @@ app.put('/update_project/:id', updateProject);
 app.delete('/delete_project/:id', deleteProject); 
 app.post('/add_participant/:id', addParticipant); 
 app.delete('/remove_participant/:id', removeParticipant);
+app.post('/criar_area', criarAreaAtuacao);
+app.get('/areas', buscarAreasAtuacao);
 
 // Rota de imagem de perfil
 app.get('/profileimage/:userEmail', GetProfileImage);

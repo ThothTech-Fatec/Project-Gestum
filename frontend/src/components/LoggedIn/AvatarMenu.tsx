@@ -320,7 +320,7 @@ const handleCloseEditModal = () => {
       )}
 
       {/* Modal de Login/Cadastro */}
-      <Modal
+        <Modal
         open={loginModalOpen}
         onClose={() => {
           setLoginModalOpen(false);
@@ -349,8 +349,8 @@ const handleCloseEditModal = () => {
           </Typography>
           {isSignUp && (
             <TextField
-              value={tempUserName}
-              onChange={handleNameChange}
+              value={tempUserName}  // Usando tempUserName para cadastro
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTempUserName(e.target.value)} // Atualiza tempUserName diretamente
               variant="outlined"
               margin="normal"
               fullWidth
@@ -359,7 +359,7 @@ const handleCloseEditModal = () => {
           )}
           <TextField
             value={userEmail}
-            onChange={handleEmailChange}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUserEmail(e.target.value)} // Atualização simplificada
             variant="outlined"
             margin="normal"
             fullWidth
@@ -367,7 +367,7 @@ const handleCloseEditModal = () => {
           />
           <TextField
             value={userPassword}
-            onChange={handlePasswordChange}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUserPassword(e.target.value)} // Atualização simplificada
             variant="outlined"
             margin="normal"
             fullWidth
