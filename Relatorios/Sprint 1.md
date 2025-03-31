@@ -87,3 +87,5 @@ https://github.com/user-attachments/assets/8b5c4bde-a26f-4c0c-a28d-64a1ed88277d
 ## 👨‍💻Trabalho desenvolvido
 
 [Project Gestum Slides](https://github.com/user-attachments/files/19527768/Project.Gestum.pdf)
+
+## 📈Burndown
