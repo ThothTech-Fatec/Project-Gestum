@@ -95,7 +95,7 @@ As entregas de valor de cada sprint estão mais detalhadas nos relatórios dispo
  
  ### <a href="./Relatorios/Sprint 1.md">1️⃣SPRINT 1 - Entrega: 30/03/2025</a> 
 
- ### <a href="./Relatórios/Sprint 2.md">2️⃣SPRINT 2 - Entrega: 27/04/2025</a> 
+ ### <a href="./Relatorios/Sprint 2.md">2️⃣SPRINT 2 - Entrega: 27/04/2025</a> 
 
  ### <a href="./Relatórios/Sprint 3.md">3️⃣SPRINT 3 - Entrega: 25/05/2025</a>
 
