@@ -7,6 +7,7 @@
     <a href="#solucao">Solução proposta</a> |
     <a href="#mvp">MVP</a> |  
     <a href="#backlog">Backlog</a> | 
+    <a href="#criteriosaceita">Critérios de Aceitação</a> | 
     <a href="#requisitos">Requisitos</a> | 
     <a href="#sprint">Relatório das sprints</a> | 
     <a href="#tecnologias">Tecnologias utilizadas</a> | 
@@ -56,6 +57,42 @@ A solução consiste em um sistema web responsivo que permite cadastrar, visuali
 11|Alta|Como coordenador, quero acompanhar o andamento das atividades de um projeto para garantir que prazos sejam cumpridos.|8 Pontos|3|Acompanhar andamento das atividades|-O sistema deve exibir uma linha do tempo das atividades.<br>-As atividades são exibidas de forma cronológica, destacando prazos importantes e marcos do projeto.<br>-O sistema deve permitir visualizar detalhes de cada atividade.|❌
 12|Alta|Como coordenador, quero um dashboard de evolução de projetos para ter uma visão geral do progresso e métricas dos projetos.|8 Pontos|3|Dashboard de Evolução de Projetos: Visão geral dos Projetos / Visão por Projeto|-O dashboard deve exibir um panorama geral de todos os projetos, incluindo status e métricas de desempenho.<br>-Deve permitir visualizar um projeto específico com detalhes sobre progresso e atividades.<br>-As informações devem ser apresentadas de forma clara e visualmente intuitiva.|❌
 13|Alta|Como coordenador, quero gerar relatórios de projetos e suas atividades por área para acompanhar a execução das tarefas.|5 Pontos|3|Relatórios: Projetos e suas atividades, por área|-O sistema deve permitir a geração de relatórios com a lista de projetos e suas atividades agrupadas por área.<br>-O relatório deve incluir informações sobre prazos, responsáveis e status das atividades.<br>-Deve ser possível exportar os relatórios em formatos como PDF e Excel.|❌
+
+
+<span id="criteriosaceita">
+
+<h2 aling="center">✅ Critérios de Aceitação </h2>
+
+
+| Nº | Critério de Aceitação | Cenário de Teste |
+|----|------------------------|------------------|
+| 1.1 | Cadastrar projetos da FAPG | Dado que estou na tela de cadastro de projeto, quando preencho todos os campos obrigatórios e clico em 'Salvar', então o projeto deve ser salvo no sistema. |
+| 1.2 | Cadastrar projetos da FAPG | Dado que preenchi o formulário de projeto, quando clico em 'Salvar', então os dados devem ser armazenados corretamente. |
+| 2.1 | Permitir recuperação de dados de projetos | Dado que existem projetos cadastrados, quando acesso a lista de projetos, então devo visualizar todos os projetos com informações básicas. |
+| 2.2 | Permitir recuperação de dados de projetos | Dado que estou na tela de listagem de projetos, então a lista deve estar organizada de forma clara e acessível. |
+| 3.1 | Permitir atualizar e excluir dados dos projetos | Dado que estou na tela de projetos, quando clico em editar e altero os dados, então as alterações devem ser salvas corretamente. |
+| 3.2 | Permitir atualizar e excluir dados dos projetos | Dado que estou na tela de projetos, quando clico em excluir, então o projeto deve ser removido do sistema. |
+| 4.1 | Adicionar participantes aos projetos | Dado que estou na tela de participantes, quando informo nome, e-mail e função, então o participante deve ser adicionado ao projeto. |
+| 4.2 | Adicionar participantes aos projetos | Dado que adicionei participantes, então eles devem aparecer corretamente na lista de integrantes. |
+| 5.1 | Criar atividades dentro dos projetos | Dado que estou em um projeto, quando crio uma nova atividade com nome, descrição, prazo e responsável, então a atividade deve ser vinculada ao projeto. |
+| 5.2 | Criar atividades dentro dos projetos | Dado que existem atividades em um projeto, então elas devem ser listadas de forma clara e permitir edição. |
+| 6.1 | Visualizar projetos por área de atuação | Dado que estou na tela de projetos, quando seleciono uma área de atuação, então apenas os projetos daquela área devem ser exibidos. |
+| 6.2 | Visualizar projetos por área de atuação | Dado que uso a filtragem por área, então os resultados devem ser apresentados de forma clara e intuitiva. |
+| 7.1 | Visualizar projetos por responsáveis | Dado que estou na tela de projetos, quando filtro por responsável, então a lista deve mostrar apenas os projetos atribuídos àquele responsável. |
+| 7.2 | Visualizar projetos por responsáveis | Dado que vejo um projeto listado, então devo ver claramente o responsável vinculado a ele. |
+| 8.1 | Visualizar projetos por instituição | Dado que estou na tela de projetos, quando seleciono uma instituição, então os projetos vinculados devem ser listados. |
+| 8.2 | Visualizar projetos por instituição | Dado que vejo a lista filtrada por instituição, então cada projeto deve exibir sua instituição associada. |
+| 10.1 | Visualizar projetos pelo status | Dado que estou na tela de projetos, então cada projeto deve exibir seu status atual. |
+| 10.2 | Visualizar projetos pelo status | Dado que um projeto tem mudanças em seu progresso, então o status exibido deve ser atualizado automaticamente. |
+| 11.1 | Acompanhar andamento das atividades | Dado que estou visualizando um projeto, então deve ser exibida uma linha do tempo com as atividades do projeto. |
+| 11.2 | Acompanhar andamento das atividades | Dado que visualizo a linha do tempo, então as atividades devem estar em ordem cronológica com destaque para marcos importantes. |
+| 12.1 | Dashboard de Evolução de Projetos: Visão geral dos Projetos / Visão por Projeto | Dado que acesso o dashboard, então devo ver um panorama geral de todos os projetos, incluindo status e métricas. |
+| 12.2 | Dashboard de Evolução de Projetos: Visão geral dos Projetos / Visão por Projeto | Dado que seleciono um projeto no dashboard, então devo ver detalhes como progresso e atividades. |
+| 13.1 | Relatórios: Projetos e suas atividades, por área | Dado que desejo acompanhar tarefas, então devo gerar um relatório agrupado por área com informações de prazos e responsáveis. |
+| 13.2 | Relatórios: Projetos e suas atividades, por área | Dado que desejo exportar o relatório, então devo conseguir baixar em PDF ou Excel. |
+
+
+
 
 
 <span id="requisitos">
