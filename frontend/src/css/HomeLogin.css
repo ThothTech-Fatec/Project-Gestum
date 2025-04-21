@@ -534,3 +534,24 @@ select.input-field {
   background-color: #e2e8f0;
   transform: translateY(-1px);
 }
+
+.info-permissao {
+  color: #666;
+  font-style: italic;
+  text-align: center;
+  margin-top: 20px;
+}
+
+.projeto-header {
+  position: relative;
+}
+
+.botao-modal {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: none;
+  border: none;
+  font-size: 1.2em;
+  cursor: pointer;
+}

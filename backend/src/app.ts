@@ -9,11 +9,11 @@ import {
   createProject,
   getProjectDetails,
   updateProject,
-  deleteProject,
-  addParticipant,
-  removeParticipant
+  deleteProject
 } from './routes/CrudHomeLogin.js'; 
 import { buscarAreasAtuacao, criarAreaAtuacao } from './routes/Area_Atuacao.js';
+import { addParticipant, getProjectParticipants, removeParticipant } from './routes/Participantes.js';
+import { criarAtividade, deletarAtividade, listarAtividades, obterParticipantesProjeto } from './routes/atividades.js';
 
 const app = express();
 
@@ -48,6 +48,11 @@ app.post('/add_participant/:id', addParticipant);
 app.delete('/remove_participant/:id', removeParticipant);
 app.post('/criar_area', criarAreaAtuacao);
 app.get('/areas', buscarAreasAtuacao);
+app.get('/project_participants', getProjectParticipants);
+app.post('/atividades', criarAtividade);
+app.get('/atividades', listarAtividades);
+app.delete('/atividades/:id', deletarAtividade);
+app.get('/projetos/:projectId/participantes', obterParticipantesProjeto);
 
 // Rota de imagem de perfil
 app.get('/profileimage/:userEmail', GetProfileImage);
