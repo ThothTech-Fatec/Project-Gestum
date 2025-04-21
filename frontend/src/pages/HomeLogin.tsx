@@ -55,6 +55,11 @@ const Home = () => {
     
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
+  // Função para verificar permissões
+  const usuarioPodeEditar = (projeto: Projeto) => {
+    return projeto.user_role === 'responsavel';
+  };
+
   // Formata para exibição (dd/mm/yyyy)
   const formatarDataParaExibicao = useCallback((dataString: string) => {
     if (!dataString) return '';
@@ -107,7 +112,6 @@ const Home = () => {
   const carregarAreasAtuacao = useCallback(async () => {
     try {
       const response = await api.get('/areas');
-      console.log(response.data);
       setAreasAtuacao(response.data);
     } catch (error) {
       console.error('Erro ao carregar áreas de atuação:', error);
@@ -122,25 +126,17 @@ const Home = () => {
         params: { userId }
       });
       
-      console.log('Resposta da API:', response.data); 
-      
       if (!response.data || !Array.isArray(response.data)) {
         throw new Error('Formato de dados inválido');
       }
   
       const projetosFormatados = response.data.map((projeto: any) => ({
-        id_projeto: projeto.id_projeto,
-        nome_projeto: projeto.nome_projeto,
-        descricao_projeto: projeto.descricao_projeto,
+        ...projeto,
         responsavel: projeto.user_role === 'responsavel' ? 'Você' : 'Equipe',
-        data_inicio_proj: projeto.data_inicio_proj,
-        data_fim_proj: projeto.data_fim_proj,
         data_inicio_formatada: formatarDataParaExibicao(projeto.data_inicio_proj),
         data_fim_formatada: formatarDataParaExibicao(projeto.data_fim_proj),
         progresso_projeto: projeto.progresso_projeto || 0,
-        user_role: projeto.user_role,
-        nome_area: projeto.nome_area || 'Não definida',
-        area_atuacao_id: projeto.area_atuacao_id
+        nome_area: projeto.nome_area || 'Não definida'
       }));
   
       setProjetos(projetosFormatados);
@@ -176,8 +172,7 @@ const Home = () => {
   }, [navigate, carregarProjetos, carregarAreasAtuacao]);
 
   const navegarParaProjeto = (projeto: Projeto) => {
-    const projectID = `${projeto.id_projeto}`
-    localStorage.setItem('Id_Project', projectID)
+    localStorage.setItem('Id_Project', projeto.id_projeto.toString());
     navigate(`/projeto/${projeto.id_projeto}`, {state: { projeto }});
   };
 
@@ -193,7 +188,6 @@ const Home = () => {
   const atualizarProjeto = async () => {
     if (!projetoSelecionado) return;
   
-    // Verificar se os campos obrigatórios estão preenchidos
     if (!projetoSelecionado.nome_projeto || !projetoSelecionado.descricao_projeto || 
         !projetoSelecionado.data_fim_proj || !projetoSelecionado.area_atuacao_id) {
       alert("Preencha todos os campos obrigatórios!");
@@ -222,7 +216,6 @@ const Home = () => {
       setProjetos(projetosAtualizados);
       setModalAtualizar(false);
       alert('Projeto atualizado com sucesso!');
-      window.location.reload();
     } catch (error) {
       console.error('Erro ao atualizar projeto:', error);
       alert('Erro ao atualizar projeto');
@@ -237,8 +230,7 @@ const Home = () => {
         data: { userId }
       });
       
-      const projetosAtualizados = projetos.filter((projeto) => projeto.id_projeto !== id);
-      setProjetos(projetosAtualizados);
+      setProjetos(projetos.filter((projeto) => projeto.id_projeto !== id));
       fecharModal();
       alert('Projeto excluído com sucesso!');
     } catch (error) {
@@ -322,12 +314,12 @@ const Home = () => {
         user_role: 'responsavel',
         progresso_projeto: 0,
         nome_area: areaSelecionada?.nome || 'Não definida',
+        area_atuacao_id: selectedArea
       };
 
       setProjetos([...projetos, novoProjeto]);
       fecharModal();
       alert('Projeto criado com sucesso!');
-      window.location.reload();
     } catch (error) {
       console.error('Erro ao criar projeto:', error);
       alert('Erro ao criar projeto. Verifique os dados e tente novamente.');
@@ -446,27 +438,31 @@ const Home = () => {
             <p><strong>Área:</strong> {projetoSelecionado.nome_area}</p>
             <p><strong>Descrição:</strong> {projetoSelecionado.descricao_projeto}</p>
             <p><strong>Responsável:</strong> {projetoSelecionado.responsavel}</p>
-            <p><strong>Data de Início:</strong> {projetoSelecionado.data_inicio_proj}</p>
-            <p><strong>Data de Entrega:</strong> {projetoSelecionado.data_fim_proj}</p>
+            <p><strong>Data de Início:</strong> {projetoSelecionado.data_inicio_formatada}</p>
+            <p><strong>Data de Entrega:</strong> {projetoSelecionado.data_fim_formatada}</p>
             
             <div className="progress-container">
               <ProgressBar progress={projetoSelecionado.progresso_projeto || 0} />
             </div>
             
-            <div className="botoes">
-              <button className="excluir-proj-home" onClick={() => excluirProjeto(projetoSelecionado.id_projeto)}>
-                Excluir
-              </button>
-              <button className="atualizar-proj-home" onClick={() => abrirModalAtualizar(projetoSelecionado)}>
-                Atualizar
-              </button>
-            </div>
+            {usuarioPodeEditar(projetoSelecionado) ? (
+              <div className="botoes">
+                <button className="excluir-proj-home" onClick={() => excluirProjeto(projetoSelecionado.id_projeto)}>
+                  Excluir
+                </button>
+                <button className="atualizar-proj-home" onClick={() => abrirModalAtualizar(projetoSelecionado)}>
+                  Atualizar
+                </button>
+              </div>
+            ) : (
+              <p className="info-permissao">Você tem permissão apenas para visualizar este projeto.</p>
+            )}
           </div>
         </div>
       )}
 
       {/* Modal de Atualização de Projeto */}
-      {modalAtualizar && projetoSelecionado && (
+      {modalAtualizar && projetoSelecionado && usuarioPodeEditar(projetoSelecionado) && (
         <div className="modal-overlay">
           <div className="modal">
             <button className="botao-fechar-proj" onClick={() => setModalAtualizar(false)}>
@@ -501,7 +497,6 @@ const Home = () => {
               />
             </div>
 
-            {/* Seção para área de atuação com opção de criar nova área */}
             <div className="input-container">
               <label className="input-label">Área de Atuação</label>
               {!showNewAreaInput ? (

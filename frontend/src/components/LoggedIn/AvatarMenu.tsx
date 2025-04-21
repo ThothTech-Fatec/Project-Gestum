@@ -82,7 +82,6 @@ const handleCloseEditModal = () => {
       setLoginModalOpen(true);
     }
   };
-
   const fetchProfileImage = async (userEmail: string) => {
     try {
       const response = await fetch(`http://localhost:5000/profileimage/${userEmail}`);
@@ -91,7 +90,7 @@ const handleCloseEditModal = () => {
       }
 
       const data = await response.json(); // Recebe o JSON com nome_usuario e avatar
-
+      
       // Atualiza o nome do usuário
       setUserName(data.nome_usuario);
 
