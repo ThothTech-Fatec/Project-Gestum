@@ -3,7 +3,7 @@ export const addParticipant = async (req, res) => {
     try {
         const projectId = req.params.id;
         const { email, role } = req.body;
-        // Find user by email instead of ID
+        // Encontra o id do usuário pelo email
         const [user] = await pool.query('SELECT id_usuario FROM usuarios WHERE email_usuario = ?', [email]);
         if (user.length === 0) {
             return res.status(404).json({ error: 'Usuário não encontrado' });
@@ -60,7 +60,7 @@ export const removeParticipant = async (req, res) => {
 };
 export const getProjectParticipants = async (req, res) => {
     try {
-        const projectId = req.query.projectId; // Alterado de userId para projectId
+        const projectId = req.query.projectId;
         if (!projectId) {
             return res.status(400).json({ error: 'Project ID is required' });
         }
