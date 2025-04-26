@@ -52,7 +52,7 @@ export const criarAtividade = async (req, res) => {
         });
     }
 };
-// Nova rota para obter participantes do projeto
+// rota para obter participantes do projeto
 export const obterParticipantesProjeto = async (req, res) => {
     try {
         const { projectId } = req.params;
@@ -120,11 +120,4 @@ export const deletarAtividade = async (req, res) => {
             error: 'Erro interno ao deletar atividade'
         });
     }
-};
-// Exportar todas as funções necessárias
-export default {
-    criarAtividade,
-    listarAtividades,
-    deletarAtividade,
-    obterParticipantesProjeto
 };

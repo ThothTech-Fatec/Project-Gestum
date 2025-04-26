@@ -1,59 +1,36 @@
-body{
+body {
     overflow-y: scroll;
 }
-.h2_atividade{
-    display: flex;
-    margin-left: 5em;
-}
 
-.container {
-    font-family: Arial, sans-serif;
-    padding: 20px;
+.h2_atividade {
+    display: inline-block; 
+    margin-left: 0; 
+    padding-left: 0; 
+    position: relative;
+    text-align: left;
+    width: auto; /* Deixe o width automático para se ajustar ao conteúdo */
+    box-sizing: border-box; 
+    margin-bottom: 10px; /* Espaço para separar do botão */
+    margin-right: 75%;
 }
-
-/* Cabeçalho */
-.header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background-color: #222;
-    color: white;
-    padding: 10px 20px;
-}
-
-/* Informações do usuário */
-.user-info {
-    display: flex;
-    align-items: center;
-}
-
-.user-info p {
-    margin-right: 10px;
-}
-
-.user-img {
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-}
-
-/* Título principal */
-h1 {
-    margin: 0;
-}
-
-/* Seções */
-.minhas-atividades,
-.atividades-gerais {
-    margin-top: 20px;
-    
+  
+/* sublinhado que ultrapassa a palavra */
+.h2_atividade::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: -5px;
+    width: 250%; /* Ajusta o sublinhado para passar um pouco mais à frente */
+    height: 2px;
+    background-color: black;
 }
 
 /* Ajuste para título e botão na mesma linha */
 .titulo-atividades {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    flex-direction: column; /* Garantir que o título fique acima do botão */
+    justify-content: flex-start;
+    align-items: flex-start;
 }
 
 /* Botão "Nova Atividade" */
@@ -64,6 +41,7 @@ h1 {
     padding: 10px;
     cursor: pointer;
     border-radius: 5px;
+    margin-top: 10px; /* Espaço entre o título e o botão */
 }
 
 /* Estilização das atividades */

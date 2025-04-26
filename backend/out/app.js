@@ -8,6 +8,7 @@ import { getUserProjects, createProject, getProjectDetails, updateProject, delet
 import { buscarAreasAtuacao, criarAreaAtuacao } from './routes/Area_Atuacao.js';
 import { addParticipant, getProjectParticipants, removeParticipant } from './routes/Participantes.js';
 import { criarAtividade, deletarAtividade, listarAtividades, obterParticipantesProjeto } from './routes/atividades.js';
+import { criarInstituicao, listarInstituicoes } from './routes/Instituicoes.js';
 const app = express();
 // Configuração do CORS
 app.use(cors({
@@ -40,6 +41,8 @@ app.post('/atividades', criarAtividade);
 app.get('/atividades', listarAtividades);
 app.delete('/atividades/:id', deletarAtividade);
 app.get('/projetos/:projectId/participantes', obterParticipantesProjeto);
+app.post('/instituicoes', criarInstituicao);
+app.get('/getinstituicoes', listarInstituicoes);
 // Rota de imagem de perfil
 app.get('/profileimage/:userEmail', GetProfileImage);
 // Middleware de erro (adicione no final, antes do listen)

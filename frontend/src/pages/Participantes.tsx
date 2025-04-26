@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import SuperiorMenu from "../components/MenuSuperior.tsx";
 import "../css/Participantes.css";
-import { Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField } from "@mui/material";
+import { Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Alert } from "@mui/material";
 import { useLocation } from 'react-router-dom';
 import axios from "axios";
 import UserAvatar from "../components/UserAvatar.tsx";
@@ -11,6 +11,11 @@ interface Participant {
   nome_usuario: string;
   email_usuario: string;
   tipo: 'responsavel' | 'colaborador';
+}
+
+interface Projeto {
+  id_projeto: number;
+  user_role?: string;
 }
 
 const api = axios.create({
@@ -23,16 +28,19 @@ const Participantes = () => {
   const [newParticipantEmail, setNewParticipantEmail] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
+  const [isResponsavel, setIsResponsavel] = useState(false);
 
   const location = useLocation();
-  const projeto = location.state?.projeto;
+  const projeto = location.state?.projeto as Projeto;
   const projectId = projeto?.id_projeto; 
 
   useEffect(() => {
     if (projectId) {
       fetchParticipants();
+      // Verifica se o usuário atual é responsável pelo projeto
+      setIsResponsavel(projeto.user_role === 'responsavel');
     }
-  }, [projectId]);
+  }, [projectId, projeto]);
 
   const fetchParticipants = async () => {
     try {
@@ -51,6 +59,8 @@ const Participantes = () => {
   };
 
   const handleRemoveParticipant = async (participantId: number) => {
+    if (!window.confirm('Tem certeza que deseja remover este participante?')) return;
+    
     try {
       await api.delete(`/remove_participant/${projectId}`, {
         data: { participantId }
@@ -68,6 +78,11 @@ const Participantes = () => {
   
   const handleAddParticipant = async () => {
     try {
+      if (!newParticipantEmail) {
+        setError('Por favor, insira um email válido');
+        return;
+      }
+
       await api.post(`/add_participant/${projectId}`, {
         email: newParticipantEmail,
         role: 'colaborador'
@@ -75,6 +90,7 @@ const Participantes = () => {
 
       setOpenDialog(false);
       setNewParticipantEmail('');
+      setError('');
       fetchParticipants();
     } catch (error) {
       console.error('Error adding participant:', error);
@@ -91,7 +107,7 @@ const Participantes = () => {
       <SuperiorMenu />
       <div className="participantes">
         <h1>Participantes</h1>
-        <div className="error-message">No project selected</div>
+        <div className="error-message">Nenhum projeto selecionado</div>
       </div>
     </div>;
   }
@@ -101,16 +117,26 @@ const Participantes = () => {
       <SuperiorMenu />
       <div className="participantes">
         <h1>Participantes</h1>
+        
+        {isResponsavel && (
+          <Alert severity="info" sx={{ mb: 2 }}>
+            Você é o responsável por este projeto e pode gerenciar participantes.
+          </Alert>
+        )}
+
         {error && <div className="error-message">{error}</div>}
         
         <div className="participants-grid">
-          <div className="participant-card add-card" style={{ cursor: 'pointer'}} onClick={() => setOpenDialog(true)}>
-            <div className="add-icon">➕</div>
-            <p>Adicionar Participantes</p>
-          </div>
+          {/* Card de adicionar participante - só aparece para responsáveis */}
+          {isResponsavel && (
+            <div className="participant-card add-card" onClick={() => setOpenDialog(true)}>
+              <div className="add-icon">➕</div>
+              <p>Adicionar Participantes</p>
+            </div>
+          )}
 
           {loading ? (
-            <div>Loading participants...</div>
+            <div>Carregando participantes...</div>
           ) : participants.length > 0 ? (
             participants.map((participant) => (
               <div key={participant.id_usuario} className="participant-card">
@@ -122,7 +148,9 @@ const Participantes = () => {
                 <span className={`role-badge ${participant.tipo}`}>
                   {participant.tipo === 'responsavel' ? 'Responsável' : 'Colaborador'}
                 </span>
-                {participant.tipo !== 'responsavel' && (
+                
+                {/* Botão de remover - só aparece para responsáveis e não para o próprio responsável */}
+                {isResponsavel && participant.tipo !== 'responsavel' && (
                   <button
                     className="remove-part"
                     onClick={() => handleRemoveParticipant(participant.id_usuario)}
@@ -138,30 +166,38 @@ const Participantes = () => {
               </div>
             ))
           ) : (
-            <div>No participants found</div>
+            <div>Nenhum participante encontrado</div>
           )}
         </div>
 
-        <Dialog open={openDialog} onClose={() => setOpenDialog(false)}>
-          <DialogTitle>Adicionar Participante</DialogTitle>
-          <DialogContent>
-            <TextField
-              autoFocus
-              margin="dense"
-              label="Email do Participante"
-              type="email"
-              fullWidth
-              value={newParticipantEmail}
-              onChange={(e) => setNewParticipantEmail(e.target.value)}
-            />
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setOpenDialog(false)}>Cancelar</Button>
-            <Button onClick={handleAddParticipant} variant="contained" color="primary">
-              Adicionar
-            </Button>
-          </DialogActions>
-        </Dialog>
+        {/* Modal de adicionar participante - só aparece para responsáveis */}
+        {isResponsavel && (
+          <Dialog open={openDialog} onClose={() => setOpenDialog(false)}>
+            <DialogTitle>Adicionar Participante</DialogTitle>
+            <DialogContent>
+              <TextField
+                autoFocus
+                margin="dense"
+                label="Email do Participante"
+                type="email"
+                fullWidth
+                value={newParticipantEmail}
+                onChange={(e) => setNewParticipantEmail(e.target.value)}
+              />
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={() => setOpenDialog(false)}>Cancelar</Button>
+              <Button 
+                onClick={handleAddParticipant} 
+                variant="contained" 
+                color="primary"
+                disabled={!newParticipantEmail}
+              >
+                Adicionar
+              </Button>
+            </DialogActions>
+          </Dialog>
+        )}
       </div>
     </div>
   );

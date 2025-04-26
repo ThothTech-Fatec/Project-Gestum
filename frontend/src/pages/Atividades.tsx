@@ -184,8 +184,9 @@ const Atividades = () => {
       </main>
 
       <section className="minhas-atividades">
+      
         <h2 className="h2_atividade">Minhas Atividades</h2>
-        
+      
         {isResponsavel && (
           <button className="nova-atividade" onClick={() => setOpen(true)}>
             Nova Atividade
