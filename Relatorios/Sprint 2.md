@@ -11,16 +11,16 @@ A Sprint 2 teve como foco a integração entre o front-end e o back-end, além d
 | :----: | :----: |                                                                                    
 | Conectar back-end com o front-end                                                         | ✅     
 | Criar página de atividades                                                                | ✅     
-| Adicionar participantes ao projeto                                                        | ❌    
-| Adicionar participantes aos projetos com nome, e-mail e função                            | ❌     
-| Vincular participantes corretamente aos projetos                                          | ❌     
-| Criar atividades com nome, descrição, prazo, responsável e status                         | ❌     
-| Vincular corretamente as atividades aos projetos                                          | ❌     
-| Exibir lista organizada de atividades com edição                                          | ❌     
-| Filtrar projetos por área de atuação                                                      | ❌     
-| Filtrar projetos por responsáveis                                                         | ❌     
-| Filtrar projetos por instituição                                                          | ❌     
-| Exibir projetos por status com atualização automática                                     | ❌     
+| Adicionar participantes ao projeto                                                        | ✅    
+| Adicionar participantes aos projetos com nome, e-mail e função                            | ✅     
+| Vincular participantes corretamente aos projetos                                          | ✅     
+| Criar atividades com nome, descrição, prazo, responsável e status                         | ✅     
+| Vincular corretamente as atividades aos projetos                                          | ✅     
+| Exibir lista organizada de atividades com edição                                          | ✅     
+| Filtrar projetos por área de atuação                                                      | ✅     
+| Filtrar projetos por responsáveis                                                         | ✅     
+| Filtrar projetos por instituição                                                          | ✅     
+| Exibir projetos por status com atualização automática                                     | ✅     
 
 
 <h2 aling="center"> 💻Tecnologias Utilizadas na Primeira Sprint </h2>
