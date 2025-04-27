@@ -20,7 +20,7 @@ A Sprint 2 teve como foco a integração entre o front-end e o back-end, além d
 | Filtrar projetos por área de atuação                                                      | ✅     
 | Filtrar projetos por responsáveis                                                         | ✅     
 | Filtrar projetos por instituição                                                          | ✅     
-| Exibir projetos por status com atualização automática                                     | ✅     
+     
 
 
 <h2 aling="center"> 💻Tecnologias Utilizadas na Primeira Sprint </h2>
