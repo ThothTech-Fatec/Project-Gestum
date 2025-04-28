@@ -10,6 +10,11 @@ email_usuario VARCHAR (80) NOT NULL unique,
 senha_usuario VARCHAR (80) NOT NULL
 );
 
+CREATE TABLE instituicoes
+(id_empresa INT PRIMARY KEY auto_increment,
+nome_empresa VARCHAR(50) NOT NULL,
+cnpj VARCHAR(14) NOT NULL
+);
 
 CREATE TABLE areas_atuacao (
   id INT auto_increment PRIMARY KEY,
@@ -25,7 +30,9 @@ area_atuacao_id INT,
 progresso_projeto INT,
 data_inicio_proj datetime default current_timestamp ,
 data_fim_proj datetime,
-FOREIGN KEY (area_atuacao_id) REFERENCES areas_atuacao(id)
+id_empresa INT,
+FOREIGN KEY (area_atuacao_id) REFERENCES areas_atuacao(id),
+FOREIGN KEY (id_empresa) REFERENCES instituicoes(id_empresa)
 );
 
 CREATE TABLE notificacoes (
@@ -55,6 +62,7 @@ CREATE TABLE projetos_atividades (
     nome_atividade VARCHAR(50),
     descricao_atividade VARCHAR(70),
     storypoint_atividade INT,
+    realizada BOOLEAN default false,
     inicio_atividade datetime default current_timestamp,
 	fim_atividade datetime,
     FOREIGN KEY (id_projeto) REFERENCES projetos(id_projeto)
@@ -72,6 +80,7 @@ select * from usuarios;
 
 select * from projetos;
 
+select * from projetos_participantes;
 
-
+select * from projetos_atividades;
 

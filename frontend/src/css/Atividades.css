@@ -8,9 +8,9 @@ body {
     padding-left: 0; 
     position: relative;
     text-align: left;
-    width: auto; /* Deixe o width automático para se ajustar ao conteúdo */
+    width: auto; 
     box-sizing: border-box; 
-    margin-bottom: 10px; /* Espaço para separar do botão */
+    margin-bottom: 10px; 
     margin-right: 75%;
 }
   
@@ -20,7 +20,7 @@ body {
     position: absolute;
     left: 0;
     bottom: -5px;
-    width: 250%; /* Ajusta o sublinhado para passar um pouco mais à frente */
+    width: 250%; 
     height: 2px;
     background-color: black;
 }
@@ -28,20 +28,20 @@ body {
 /* Ajuste para título e botão na mesma linha */
 .titulo-atividades {
     display: flex;
-    flex-direction: column; /* Garantir que o título fique acima do botão */
+    flex-direction: column; 
     justify-content: flex-start;
     align-items: flex-start;
 }
 
 /* Botão "Nova Atividade" */
 .nova-atividade {
-    background-color: #4caf50;
+    background-color: #2563eb;
     color: white;
     border: none;
     padding: 10px;
     cursor: pointer;
     border-radius: 5px;
-    margin-top: 10px; /* Espaço entre o título e o botão */
+    margin-top: 10px; 
 }
 
 /* Estilização das atividades */
