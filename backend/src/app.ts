@@ -13,7 +13,7 @@ import {
 } from './routes/CrudHomeLogin.js'; 
 import { buscarAreasAtuacao, criarAreaAtuacao } from './routes/Area_Atuacao.js';
 import { addParticipant, getProjectParticipants, removeParticipant } from './routes/Participantes.js';
-import { criarAtividade, deletarAtividade, listarAtividades, obterParticipantesProjeto } from './routes/atividades.js';
+import { atualizarResponsavelAtividade, criarAtividade, deletarAtividade, listarAtividades, marcarComoRealizada, obterParticipantesProjeto } from './routes/atividades.js';
 import { criarInstituicao, listarInstituicoes } from './routes/Instituicoes.js';
 
 const app = express();
@@ -56,9 +56,12 @@ app.delete('/atividades/:id', deletarAtividade);
 app.get('/projetos/:projectId/participantes', obterParticipantesProjeto);
 app.post('/instituicoes', criarInstituicao);
 app.get('/getinstituicoes', listarInstituicoes);
+app.put('/:id/realizada', marcarComoRealizada);
+app.put('/:id/responsavel', atualizarResponsavelAtividade);
 
 // Rota de imagem de perfil
 app.get('/profileimage/:userEmail', GetProfileImage);
+
 
 // Middleware de erro (adicione no final, antes do listen)
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
