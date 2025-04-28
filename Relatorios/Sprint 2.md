@@ -84,6 +84,8 @@ A Sprint 2 teve como foco a integração entre o front-end e o back-end, além d
 
 ## 👨‍💻Trabalho desenvolvido
 
+https://github.com/user-attachments/assets/7b5bd622-2a88-49f6-9932-8527c90b77d3
+
 
 ## 📈Burndown
 ![Image](https://github.com/user-attachments/assets/8a786a0c-3850-4310-a0e0-6d88055f8eae)
