@@ -7,8 +7,10 @@ import multer from 'multer';
 import { getUserProjects, createProject, getProjectDetails, updateProject, deleteProject } from './routes/CrudHomeLogin.js';
 import { buscarAreasAtuacao, criarAreaAtuacao } from './routes/Area_Atuacao.js';
 import { addParticipant, getProjectParticipants, removeParticipant } from './routes/Participantes.js';
-import { atualizarResponsavelAtividade, criarAtividade, deletarAtividade, listarAtividades, marcarComoRealizada, obterParticipantesProjeto } from './routes/atividades.js';
+import { atualizarAtividade, atualizarResponsavelAtividade, criarAtividade, deletarAtividade, listarAtividades, marcarComoRealizada, obterParticipantesProjeto } from './routes/atividades.js';
 import { criarInstituicao, listarInstituicoes } from './routes/Instituicoes.js';
+import { DatasInicio_Fim } from './routes/Calendario.js';
+import { getStoryPointsByStatus } from './routes/ProgressBar.js';
 const app = express();
 // Configuração do CORS
 app.use(cors({
@@ -45,6 +47,9 @@ app.post('/instituicoes', criarInstituicao);
 app.get('/getinstituicoes', listarInstituicoes);
 app.put('/:id/realizada', marcarComoRealizada);
 app.put('/:id/responsavel', atualizarResponsavelAtividade);
+app.get('/datasinicio_fim/:id', DatasInicio_Fim);
+app.get('/progressStoryPoints/:id', getStoryPointsByStatus);
+app.put('/atividades/:id', atualizarAtividade);
 // Rota de imagem de perfil
 app.get('/profileimage/:userEmail', GetProfileImage);
 // Middleware de erro (adicione no final, antes do listen)

@@ -22,7 +22,7 @@ const SuperiorMenu = () => {
 
 
 
-  const isProjetoPage = location.pathname.startsWith("/projeto") || location.pathname.startsWith("/Atividades") || location.pathname.startsWith("/Participantes");
+  const isProjetoPage = location.pathname.startsWith("/projeto") || location.pathname.startsWith("/Atividades") || location.pathname.startsWith("/Participantes") || location.pathname.startsWith("/Dashboard")
 
   return (
     <nav className="superior-menu">
@@ -57,7 +57,7 @@ const SuperiorMenu = () => {
             </Link>
           </li>
           <li>
-            <Link to="/Dashboard">
+            <Link to="/Dashboard" state={{ projeto: projeto}}>
               <FiActivity className="dashboard-icon" />
             </Link>
           </li>

@@ -1,86 +1,97 @@
-create database gestum;
+	create database gestum;
 
-use gestum;
+	use gestum;
 
-CREATE TABLE usuarios
-(id_usuario INT PRIMARY KEY auto_increment,
-avatar longblob,
-nome_usuario VARCHAR (50) NOT NULL,
-email_usuario VARCHAR (80) NOT NULL unique,
-senha_usuario VARCHAR (80) NOT NULL
-);
+	 
+	CREATE TABLE usuarios
+	(id_usuario INT PRIMARY KEY auto_increment,
+	avatar longblob,
+	nome_usuario VARCHAR (50) NOT NULL,
+	email_usuario VARCHAR (80) NOT NULL unique,
+	senha_usuario VARCHAR (80) NOT NULL
+	);
 
-CREATE TABLE instituicoes
-(id_empresa INT PRIMARY KEY auto_increment,
-nome_empresa VARCHAR(50) NOT NULL,
-cnpj VARCHAR(14) NOT NULL
-);
+	CREATE TABLE instituicoes
+	(id_empresa INT PRIMARY KEY auto_increment,
+	nome_empresa VARCHAR(50) NOT NULL,
+	cnpj VARCHAR(14) NOT NULL
+	);
 
-CREATE TABLE areas_atuacao (
-  id INT auto_increment PRIMARY KEY,
-  nome VARCHAR(100) NOT NULL UNIQUE,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+	CREATE TABLE areas_atuacao (
+	  id INT auto_increment PRIMARY KEY,
+	  nome VARCHAR(100) NOT NULL UNIQUE,
+	  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+	);
 
-CREATE TABLE projetos(
-id_projeto INT PRIMARY KEY auto_increment,
-nome_projeto VARCHAR (50) NOT NULL,
-descricao_projeto VARCHAR(300) NOT NULL,
-area_atuacao_id INT,
-progresso_projeto INT,
-data_inicio_proj datetime default current_timestamp ,
-data_fim_proj datetime,
-id_empresa INT,
-FOREIGN KEY (area_atuacao_id) REFERENCES areas_atuacao(id),
-FOREIGN KEY (id_empresa) REFERENCES instituicoes(id_empresa)
-);
+	CREATE TABLE projetos(
+	id_projeto INT PRIMARY KEY auto_increment,
+	nome_projeto VARCHAR (50) NOT NULL,
+	descricao_projeto VARCHAR(300) NOT NULL,
+	area_atuacao_id INT,
+	progresso_projeto INT,
+	data_inicio_proj datetime default current_timestamp ,
+	data_fim_proj datetime,
+	id_empresa INT,
+	FOREIGN KEY (area_atuacao_id) REFERENCES areas_atuacao(id),
+	FOREIGN KEY (id_empresa) REFERENCES instituicoes(id_empresa)
+	);
 
-CREATE TABLE notificacoes (
-    id_notificacao INT PRIMARY KEY AUTO_INCREMENT,
-    id_usuario INT NOT NULL, 
-    id_projeto INT,  
-    titulo VARCHAR(50) NOT NULL,
-    descricao VARCHAR(255) NOT NULL,
-    tipo ENUM('convite', 'atualizacao', 'comentario') NOT NULL,
-    lida BOOLEAN DEFAULT FALSE, 
-    FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario),
-    FOREIGN KEY (id_projeto) REFERENCES projetos(id_projeto) ON DELETE CASCADE
-);
+	CREATE TABLE orcamento(
+	id_orcamento INT PRIMARY KEY auto_increment,
+	id_projeto INT,
+	valor DECIMAL (10,2),
+	FOREIGN KEY (id_projeto) REFERENCES projetos(id_projeto) 
+	);
 
-CREATE TABLE projetos_participantes (
-    id_participante INT PRIMARY KEY AUTO_INCREMENT,
-    id_usuario INT NOT NULL,
-    id_projeto INT NOT NULL,
-    tipo ENUM('responsavel', 'colaborador') NOT NULL DEFAULT 'responsavel',
-    FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario) ON DELETE CASCADE,
-    FOREIGN KEY (id_projeto) REFERENCES projetos(id_projeto) ON DELETE CASCADE
-);
+	CREATE TABLE notificacoes (
+		id_notificacao INT PRIMARY KEY AUTO_INCREMENT,
+		id_usuario INT NOT NULL, 
+		id_projeto INT,  
+		titulo VARCHAR(50) NOT NULL,
+		descricao VARCHAR(255) NOT NULL,
+		tipo ENUM('convite', 'atualizacao', 'comentario') NOT NULL,
+		lida BOOLEAN DEFAULT FALSE, 
+		FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario),
+		FOREIGN KEY (id_projeto) REFERENCES projetos(id_projeto) ON DELETE CASCADE
+	);
 
-CREATE TABLE projetos_atividades (
-	id_atividade INT PRIMARY KEY AUTO_INCREMENT,
-    id_projeto INT,
-    nome_atividade VARCHAR(50),
-    descricao_atividade VARCHAR(70),
-    storypoint_atividade INT,
-    realizada BOOLEAN default false,
-    inicio_atividade datetime default current_timestamp,
-	fim_atividade datetime,
-    FOREIGN KEY (id_projeto) REFERENCES projetos(id_projeto)
-);
+	CREATE TABLE projetos_participantes (
+		id_participante INT PRIMARY KEY AUTO_INCREMENT,
+		id_usuario INT NOT NULL,
+		id_projeto INT NOT NULL,
+		tipo ENUM('responsavel', 'colaborador') NOT NULL DEFAULT 'responsavel',
+		FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario) ON DELETE CASCADE,
+		FOREIGN KEY (id_projeto) REFERENCES projetos(id_projeto) ON DELETE CASCADE
+	);
 
-CREATE TABLE responsaveis_atividade (
-	id_responsaveis_atividade INT PRIMARY KEY AUTO_INCREMENT,
-    id_atividade INT, 
-    id_responsavel INT,
-    FOREIGN KEY (id_atividade) REFERENCES projetos_atividades(id_atividade),
-    FOREIGN KEY (id_responsavel) REFERENCES usuarios(id_usuario)
-);
+	CREATE TABLE projetos_atividades (
+		id_atividade INT PRIMARY KEY AUTO_INCREMENT,
+		id_projeto INT,
+		nome_atividade VARCHAR(50),
+		descricao_atividade VARCHAR(70),
+		storypoint_atividade INT,
+		realizada BOOLEAN default false,
+		inicio_atividade datetime default current_timestamp,
+		fim_atividade datetime,
+		FOREIGN KEY (id_projeto) REFERENCES projetos(id_projeto)
+	);
 
-select * from usuarios;
+	CREATE TABLE responsaveis_atividade (
+		id_responsaveis_atividade INT PRIMARY KEY AUTO_INCREMENT,
+		id_atividade INT, 
+		id_responsavel INT,
+		FOREIGN KEY (id_atividade) REFERENCES projetos_atividades(id_atividade),
+		FOREIGN KEY (id_responsavel) REFERENCES usuarios(id_usuario)
+	);
 
-select * from projetos;
+	CREATE TABLE orcamento_ati(
+	id_orcamento_ati INT PRIMARY KEY auto_increment,
+	valor FLOAT,
+	id_atividade INT,
+	id_orcamento INT,
+	FOREIGN KEY (id_atividade) REFERENCES projetos_atividades(id_atividade) ON DELETE CASCADE,
+	FOREIGN KEY (id_orcamento) REFERENCES orcamento(id_orcamento) ON DELETE CASCADE
+	);
 
-select * from projetos_participantes;
 
-select * from projetos_atividades;
 

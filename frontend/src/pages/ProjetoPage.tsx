@@ -2,8 +2,8 @@ import React, { useState } from "react";
 import SuperiorMenu from "../components/MenuSuperior.tsx";
 import "../css/ProjetoPage.css";  
 import { useLocation } from "react-router-dom";
-import Calendario from "../components/Calendario.tsx";
-import ProgessBar from "../components/ProgressBar.tsx";
+import CalendarioProjeto from "../components/Calendario.tsx";
+import ProgressBar from "../components/ProgressBar.tsx"; 
 import { Grid, Box } from "@mui/material";
 
 const ProjetoPage = () => {
@@ -51,7 +51,8 @@ const ProjetoPage = () => {
 
         {/* Calendário */}
         <div className="calendar-container">
-          <Calendario 
+          <CalendarioProjeto 
+            projetoId={projeto.id_projeto} 
             dataInicio={projeto.data_inicio_proj} 
             dataFim={projeto.data_fim_proj} 
           />
@@ -60,8 +61,7 @@ const ProjetoPage = () => {
         {/* Barra de Progresso */}
         <div className="progress-container">
           <h2>Andamento do Projeto</h2>
-          <div className="progress-percentage">0%</div>
-          <ProgessBar progress={0} />
+          <ProgressBar projetoId={projeto.id_projeto} />
         </div>
       </div>
     </div>

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import "../css/Atividades.css";
 import { useLocation } from "react-router-dom";
 import SuperiorMenu from "../components/MenuSuperior.tsx";
+import EditIcon from '@mui/icons-material/Edit';
 import { 
   Stack, 
   Typography, 
@@ -75,6 +76,8 @@ const Atividades = () => {
   const [tabValue, setTabValue] = useState(0);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [isLoadingAction, setIsLoadingAction] = useState(false);
+  const [openEdit, setOpenEdit] = useState(false);
+  const [currentEditId, setCurrentEditId] = useState<number | null>(null);
 
   // Campos do formulário
   const [nome, setNome] = useState('');
@@ -190,6 +193,67 @@ const Atividades = () => {
     }
   };
 
+const handleOpenEdit = (atividade: Atividade) => {
+  setCurrentEditId(atividade.id_atividade); // Armazena o ID
+  setNome(atividade.nome_atividade);
+  setDescricao(atividade.descricao_atividade);
+  setStorypoint(atividade.storypoint_atividade || '');
+  
+  // Preencher responsáveis
+  if (atividade.responsaveis) {
+    const responsaveis = participantesProjeto.filter(participante => 
+      atividade.responsaveis?.split(',').includes(participante.email)
+    );
+    setSelectedParticipants(responsaveis);
+  }
+  
+  setOpenEdit(true);
+};
+
+const handleEditarAtividade = async () => {
+  try {
+    setIsLoadingAction(true);
+    
+    if (!currentEditId) {
+      setSnackbarMessage('ID da atividade não encontrado');
+      return;
+    }
+
+    if (!nome || !descricao) {
+      setSnackbarMessage('Preencha todos os campos obrigatórios');
+      return;
+    }
+
+    const participantesEmails = selectedParticipants.map(p => p.email);
+    const storyPointValue = storypoint === '' ? null : Number(storypoint);
+
+    const response = await axios.put(`http://localhost:5000/atividades/${currentEditId}`, {
+      nome_atividade: nome,
+      descricao_atividade: descricao,
+      storypoint_atividade: storyPointValue,
+      participantes: participantesEmails,
+      isResponsavel: isResponsavelProjeto
+    });
+
+    if (response.data.success) {
+      setSnackbarMessage('Atividade atualizada com sucesso!');
+      setOpenEdit(false);
+      fetchAtividades(); // Recarrega a lista
+    } else {
+      setSnackbarMessage(response.data.error || 'Erro ao atualizar');
+    }
+  } catch (error) {
+    console.error('Erro ao atualizar:', error);
+    if (axios.isAxiosError(error)) {
+      setSnackbarMessage(error.response?.data?.error || error.message);
+    } else {
+      setSnackbarMessage('Erro ao atualizar atividade');
+    }
+  } finally {
+    setIsLoadingAction(false);
+  }
+};
+
   const handleDeletarAtividade = async (id: number) => {
     if (!window.confirm('Tem certeza que deseja deletar esta atividade?')) return;
     
@@ -206,6 +270,8 @@ const Atividades = () => {
       setSnackbarMessage('Erro ao deletar atividade. Tente novamente.');
     }
   };
+
+  
 
   const handleMarcarRealizada = async (id: number, realizada: boolean) => {
     setIsLoadingAction(true);
@@ -467,10 +533,21 @@ const Atividades = () => {
           >
             Deletar
           </Button>
+          <IconButton 
+  onClick={() => handleOpenEdit(atividade)} 
+  color="primary"
+  aria-label="editar"
+>
+  <EditIcon />
+</IconButton>
+
         </CardActions>
       )}
     </Card>
   );
+
+
+
 
   if (!projectId) {
     return (
@@ -637,7 +714,7 @@ const Atividades = () => {
             </Typography>
             <TextField
               fullWidth
-              label="Nome da Atividade *"
+              label="Nome da Atividade "
               value={nome}
               onChange={(e) => setNome(e.target.value)}
               margin="normal"
@@ -645,7 +722,7 @@ const Atividades = () => {
             />
             <TextField
               fullWidth
-              label="Descrição *"
+              label="Descrição "
               value={descricao}
               onChange={(e) => setDescricao(e.target.value)}
               multiline
@@ -724,6 +801,116 @@ const Atividades = () => {
           </Box>
         </Modal>
       )}
+      {isResponsavelProjeto && (
+  <Modal open={openEdit} onClose={() => setOpenEdit(false)}>
+    <Box
+      sx={{
+        position: 'absolute',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        width: { xs: '90%', sm: 600 },
+        bgcolor: 'background.paper',
+        borderRadius: 3,
+        boxShadow: 24,
+        p: 4,
+        maxHeight: '90vh',
+        overflowY: 'auto'
+      }}
+    >
+      <Typography variant="h5" gutterBottom sx={{ mb: 3, fontWeight: 600 }}>
+        Editar Atividade
+      </Typography>
+      <TextField
+        fullWidth
+        label="Nome da Atividade *"
+        value={nome}
+        onChange={(e) => setNome(e.target.value)}
+        margin="normal"
+        required
+      />
+      <TextField
+        fullWidth
+        label="Descrição *"
+        value={descricao}
+        onChange={(e) => setDescricao(e.target.value)}
+        multiline
+        rows={3}
+        margin="normal"
+        required
+      />
+      <TextField
+        fullWidth
+        label="Story Points"
+        type="number"
+        value={storypoint}
+        onChange={(e) => setStorypoint(e.target.value ? parseInt(e.target.value) : '')}
+        margin="normal"
+        inputProps={{ min: 0 }}
+      />
+      <Autocomplete
+        multiple
+        options={participantesProjeto}
+        getOptionLabel={(option) => `${option.nome} (${option.email})`}
+        value={selectedParticipants}
+        onChange={(_, newValue) => {
+          setSelectedParticipants(newValue);
+        }}
+        loading={loadingParticipants}
+        renderInput={(params) => (
+          <TextField
+            {...params}
+            label="Responsáveis"
+            placeholder="Digite para buscar"
+            margin="normal"
+          />
+        )}
+        renderOption={(props, option) => (
+          <li {...props}>
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              <UserAvatar email={option.email} size={24} />
+              <Box sx={{ ml: 1 }}>
+                <Typography>{option.nome}</Typography>
+                <Typography variant="caption" color="textSecondary">
+                  {option.email}
+                </Typography>
+              </Box>
+            </Box>
+          </li>
+        )}
+        renderTags={(value, getTagProps) =>
+          value.map((option, index) => (
+            <Chip
+              {...getTagProps({ index })}
+              key={option.id_usuario}
+              label={`${option.nome} (${option.email})`}
+              avatar={<UserAvatar email={option.email} size={24} />}
+              size="small"
+            />
+          ))
+        }
+      />
+      <Box mt={3} display="flex" justifyContent="flex-end" gap={1}>
+        <Button 
+          onClick={() => setOpenEdit(false)} 
+          variant="outlined"
+          sx={{ borderRadius: 1 }}
+        >
+          Cancelar
+        </Button>
+              <Button 
+        onClick={handleEditarAtividade} 
+        variant="contained"
+        disabled={!nome || !descricao || isLoadingAction}
+      >
+                {isLoadingAction ? 'Salvando...' : 'Salvar Alterações'}
+
+      </Button>
+      </Box>
+    </Box>
+  </Modal>
+)}
+
 
       <Snackbar
         open={!!snackbarMessage}

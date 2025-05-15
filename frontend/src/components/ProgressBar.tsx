@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 
 interface ProgressBarProps {
-  progress: number; 
+  projetoId: number;
   height?: number;
-  showText?: boolean; 
+  showText?: boolean;
   color?: string;
   backgroundColor?: string;
   textColor?: string;
@@ -11,21 +12,61 @@ interface ProgressBarProps {
   transitionSpeed?: number;
 }
 
+interface StoryPointsResponse {
+  concluido: number;
+  naoConcluido: number;
+  total: number;
+}
+
 const ProgressBar: React.FC<ProgressBarProps> = ({
-  progress,
+  projetoId,
   height = 16,
   showText = true,
-  color = '#2563eb', 
+  color = '#2563eb',
   backgroundColor = '#e2e8f0',
   textColor = '#ffffff',
   borderRadius,
   transitionSpeed = 300
 }) => {
-  // Garante que o progresso esteja entre 0 e 100
+  const [progress, setProgress] = useState<number>(0);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchStoryPoints = async () => {
+      try {
+        setLoading(true);
+        const response = await axios.get<StoryPointsResponse>(
+          `http://localhost:5000/progressStoryPoints/${projetoId}`
+        );
+        
+        const { concluido, total } = response.data;
+
+        console.log(response.data)
+        const calculatedProgress = total > 0 ? Math.round((concluido / total) * 100) : 0;
+        setProgress(calculatedProgress);
+      } catch (err) {
+        console.error('Erro ao buscar storypoints:', err);
+        setError('Erro ao carregar progresso');
+        setProgress(0);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStoryPoints();
+  }, [projetoId]);
+
   const clampedProgress = Math.min(100, Math.max(0, progress));
-  
-  // Calcula o borderRadius baseado na altura se não for fornecido
   const calculatedBorderRadius = borderRadius ?? height / 2;
+
+  if (loading) {
+    return <div>Carregando...</div>;
+  }
+
+  if (error) {
+    return <div style={{ color: 'red' }}>{error}</div>;
+  }
 
   return (
     <div className="progress-bar-container" 

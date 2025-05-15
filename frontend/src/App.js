@@ -4,6 +4,7 @@ import Home from './pages/HomeLogin.tsx';
 import ProjetoPage from './pages/ProjetoPage.tsx'
 import Atividades from './pages/Atividades.tsx'
 import Participantes from './pages/Participantes.tsx';
+import Dashboard from './pages/Dashboard.tsx';
 
 
 
@@ -14,6 +15,8 @@ function App() {
         <Route path="/projeto/:id" element={<ProjetoPage />} />
         <Route path="/atividades" element={<Atividades />} />
         <Route path="/participantes" element={<Participantes />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+
 
       </Routes>
 

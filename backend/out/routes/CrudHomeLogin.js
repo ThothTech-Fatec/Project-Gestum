@@ -2,8 +2,8 @@ import pool from '../config/dbconnection.js';
 export const createProject = async (req, res) => {
     const connection = await pool.getConnection();
     try {
-        const { nome_projeto, area_atuacao_id, descricao_projeto, data_fim_proj, userId, id_empresa } = req.body;
-        if (!nome_projeto || !descricao_projeto || !data_fim_proj || !userId || !id_empresa) {
+        const { nome_projeto, area_atuacao_id, descricao_projeto, data_fim_proj, userId, id_empresa, valor } = req.body;
+        if (!nome_projeto || !descricao_projeto || !data_fim_proj || !userId || !id_empresa || valor === undefined) {
             connection.release();
             return res.status(400).json({ error: 'Todos os campos são obrigatórios' });
         }
@@ -28,6 +28,11 @@ export const createProject = async (req, res) => {
       (id_usuario, id_projeto, tipo) 
       VALUES (?, ?, 'responsavel')
     `, [userId, projectId]);
+        await connection.query(`
+      INSERT INTO orcamento 
+      (id_projeto, valor) 
+      VALUES (?, ?)
+    `, [projectId, valor]);
         await connection.commit();
         // Retorna os dados completos, incluindo informações da instituição
         res.status(201).json({
@@ -36,7 +41,8 @@ export const createProject = async (req, res) => {
                 id_empresa: instituicao[0].id_empresa,
                 nome_empresa: instituicao[0].nome_empresa,
                 cnpj: instituicao[0].cnpj
-            }
+            },
+            orcamento: valor
         });
     }
     catch (error) {
@@ -70,11 +76,13 @@ export const getUserProjects = async (req, res) => {
         DATE_FORMAT(p.data_inicio_proj, '%d/%m/%Y') as data_inicio_proj,
         DATE_FORMAT(p.data_fim_proj, '%d/%m/%Y') as data_fim_proj,
         p.progresso_projeto,
-        pp.tipo as user_role
+        pp.tipo as user_role,
+        o.valor as orcamemto_total
       FROM projetos p
       JOIN projetos_participantes pp ON p.id_projeto = pp.id_projeto
       LEFT JOIN areas_atuacao a ON p.area_atuacao_id = a.id
       LEFT JOIN instituicoes i ON p.id_empresa = i.id_empresa
+      LEFT JOIN orcamento o ON p.id_projeto = o.id_projeto
       WHERE pp.id_usuario = ?
       ORDER BY p.data_inicio_proj DESC
     `, [userId]);
@@ -111,16 +119,24 @@ export const getProjectDetails = async (req, res) => {
         i.id_empresa,
         i.nome_empresa,
         i.cnpj,
+        o.id_orcamento,
+        o.valor as orcamento_total,
         DATE_FORMAT(p.data_inicio_proj, '%d/%m/%Y') as data_inicio_proj,
         DATE_FORMAT(p.data_fim_proj, '%d/%m/%Y') as data_fim_proj
       FROM projetos p
       LEFT JOIN areas_atuacao a ON p.area_atuacao_id = a.id
       LEFT JOIN instituicoes i ON p.id_empresa = i.id_empresa
+      LEFT JOIN orcamento o ON p.id_projeto = o.id_projeto
       WHERE p.id_projeto = ?`, [id_projeto]);
         if (project.length === 0) {
             connection.release();
             return res.status(404).json({ error: 'Projeto não encontrado' });
         }
+        const [atividadesOrcamento] = await connection.query(`
+      SELECT oa.*, pa.nome_atividade 
+      FROM orcamento_ati oa
+      JOIN projetos_atividades pa ON oa.id_atividade = pa.id_atividade
+      WHERE oa.id_orcamento = ?`, [project[0].id_orcamento]);
         // Obtém participantes
         const [participants] = await connection.query(`
       SELECT u.id_usuario, u.nome_usuario, pp.tipo 
@@ -128,7 +144,7 @@ export const getProjectDetails = async (req, res) => {
       JOIN usuarios u ON pp.id_usuario = u.id_usuario
       WHERE pp.id_projeto = ?
     `, [id_projeto]);
-        const response = Object.assign(Object.assign({}, project[0]), { user_role: userRole, participantes: participants });
+        const response = Object.assign(Object.assign({}, project[0]), { user_role: userRole, participantes: participants, atividadesComOrcamento: atividadesOrcamento });
         res.json(response);
     }
     catch (error) {

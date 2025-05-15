@@ -36,7 +36,7 @@ export const listarAtividades = async (req: Request, res: Response) => {
 
 export const criarAtividade = async (req: Request, res: Response) => {
   try {
-    const { id_projeto, nome_atividade, descricao_atividade, storypoint_atividade, participantes, isResponsavel } = req.body;
+    const { id_projeto, nome_atividade, descricao_atividade, storypoint_atividade, participantes, isResponsavel,inicio_atividade,fim_atividade } = req.body;
 
     if (!id_projeto || !nome_atividade || !descricao_atividade) {
       return res.status(400).json({ 
@@ -58,9 +58,9 @@ export const criarAtividade = async (req: Request, res: Response) => {
     try {
       const [result] = await connection.query<ResultSetHeader>(
         `INSERT INTO projetos_atividades 
-         (id_projeto, nome_atividade, descricao_atividade, storypoint_atividade)
-         VALUES (?, ?, ?, ?)`,
-        [id_projeto, nome_atividade, descricao_atividade, storypoint_atividade || null]
+         (id_projeto, nome_atividade, descricao_atividade, storypoint_atividade,inicio_atividade,fim_atividade)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [id_projeto, nome_atividade, descricao_atividade, storypoint_atividade || null, inicio_atividade|| null, fim_atividade|| null]
       );
 
       const idAtividade = result.insertId;
@@ -199,6 +199,122 @@ export const marcarComoRealizada = async (req: Request, res: Response) => {
     res.status(500).json({ 
       success: false, 
       error: error instanceof Error ? error.message : 'Erro interno ao atualizar status da atividade' 
+    });
+  }
+};
+
+export const atualizarAtividade = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { nome_atividade, descricao_atividade, storypoint_atividade, participantes, isResponsavel, inicio_atividade, fim_atividade } = req.body;
+
+    // Validações básicas
+    if (!isResponsavel) {
+      return res.status(403).json({
+        success: false,
+        error: 'Apenas responsáveis podem atualizar atividades',
+      });
+    }
+
+    if (!nome_atividade || nome_atividade.length > 100) {
+      return res.status(400).json({
+        success: false,
+        error: 'Nome da atividade é obrigatório e deve ter no máximo 100 caracteres',
+      });
+    }
+
+
+    const connection = await pool.getConnection();
+    await connection.beginTransaction();
+
+    try {
+      // Atualizar os dados da atividade
+      const [result] = await connection.query<OkPacket>(
+        `UPDATE projetos_atividades 
+         SET nome_atividade = ?, descricao_atividade = ?, storypoint_atividade = ?,inicio_atividade = ?, fim_atividade = ?
+         WHERE id_atividade = ?`,
+        [nome_atividade, descricao_atividade, 
+         storypoint_atividade && !isNaN(storypoint_atividade) ? storypoint_atividade : null,inicio_atividade|| null, fim_atividade|| null,
+         id]
+      );
+
+      if (result.affectedRows === 0) {
+        await connection.rollback();
+        return res.status(404).json({
+          success: false,
+          error: 'Atividade não encontrada',
+        });
+      }
+
+      // Atualizar responsáveis de forma mais eficiente
+      if (participantes) {
+        // Primeiro obtemos os atuais
+        const [currentResponsibles] = await connection.query<RowDataPacket[]>(
+          `SELECT u.email_usuario 
+           FROM responsaveis_atividade ra
+           JOIN usuarios u ON ra.id_responsavel = u.id_usuario
+           WHERE ra.id_atividade = ?`,
+          [id]
+        );
+
+        const currentEmails = currentResponsibles.map(r => r.email_usuario);
+        const newEmails = participantes as string[] || [];
+        
+        // Encontrar diferenças
+        const toAdd = newEmails.filter((email: string) => !currentEmails.includes(email));
+        const toRemove = currentEmails.filter((email: string) => !newEmails.includes(email));
+
+        // Executar alterações
+        if (toRemove.length > 0) {
+          await connection.query(
+            `DELETE ra FROM responsaveis_atividade ra
+             JOIN usuarios u ON ra.id_responsavel = u.id_usuario
+             WHERE ra.id_atividade = ? AND u.email_usuario IN (?)`,
+            [id, toRemove]
+          );
+        }
+
+        if (toAdd.length > 0) {
+          const [users] = await connection.query<RowDataPacket[]>(
+            `SELECT id_usuario FROM usuarios 
+             WHERE email_usuario IN (${toAdd.map(() => '?').join(',')})`,
+            toAdd
+          );
+
+          if (users.length > 0) {
+            const responsaveisValues = users.map(user => [id, user.id_usuario]);
+            await connection.query(
+              `INSERT INTO responsaveis_atividade (id_atividade, id_responsavel) VALUES ?`,
+              [responsaveisValues]
+            );
+          }
+        }
+      }
+
+      await connection.commit();
+      
+      // Retornar a atividade atualizada
+      const [updatedActivity] = await connection.query<RowDataPacket[]>(
+        `SELECT * FROM projetos_atividades WHERE id_atividade = ?`,
+        [id]
+      );
+
+      res.json({
+        success: true,
+        data: updatedActivity[0],
+        message: 'Atividade atualizada com sucesso',
+      });
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
+  } catch (error: unknown) {
+    console.error('Erro ao atualizar atividade:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Erro interno ao atualizar atividade',
     });
   }
 };
