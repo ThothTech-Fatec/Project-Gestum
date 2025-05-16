@@ -33,6 +33,25 @@ interface Participant extends RowDataPacket {
   tipo: 'responsavel' | 'colaborador';
 }
 
+interface Orcamento extends RowDataPacket {
+  id_orcamento: number;
+  id_projeto: number;
+  valor: number;
+}
+
+interface OrcamentoAtividade extends RowDataPacket {
+  id_orcamento_ati: number;
+  id_atividade: number;
+  id_orcamento: number;
+  valor: number;
+}
+
+interface ProjectWithBudget extends Project {
+  orcamento?: Orcamento;
+  atividadesComOrcamento?: OrcamentoAtividade[];
+}
+
+
 interface ProjectWithRole extends Project {
   user_role: string;
 }
@@ -40,9 +59,9 @@ interface ProjectWithRole extends Project {
 export const createProject = async (req: Request, res: Response) => {
   const connection = await pool.getConnection();
   try {
-    const { nome_projeto, area_atuacao_id, descricao_projeto, data_fim_proj, userId, id_empresa } = req.body;
+    const { nome_projeto, area_atuacao_id, descricao_projeto, data_fim_proj, userId, id_empresa,valor } = req.body;
     
-    if (!nome_projeto || !descricao_projeto || !data_fim_proj || !userId || !id_empresa) {
+    if (!nome_projeto || !descricao_projeto || !data_fim_proj || !userId || !id_empresa|| valor === undefined) {
       connection.release();
       return res.status(400).json({ error: 'Todos os campos são obrigatórios' });
     }
@@ -77,6 +96,12 @@ export const createProject = async (req: Request, res: Response) => {
       VALUES (?, ?, 'responsavel')
     `, [userId, projectId]);
 
+    await connection.query<ResultSetHeader>(`
+      INSERT INTO orcamento 
+      (id_projeto, valor) 
+      VALUES (?, ?)
+    `, [projectId, valor]);
+
     await connection.commit();
     
     // Retorna os dados completos, incluindo informações da instituição
@@ -86,7 +111,8 @@ export const createProject = async (req: Request, res: Response) => {
         id_empresa: instituicao[0].id_empresa,
         nome_empresa: instituicao[0].nome_empresa,
         cnpj: instituicao[0].cnpj
-      }
+      },
+      orcamento: valor
     });
   } catch (error) {
     await connection.rollback();
@@ -122,11 +148,13 @@ export const getUserProjects = async (req: Request, res: Response) => {
         DATE_FORMAT(p.data_inicio_proj, '%d/%m/%Y') as data_inicio_proj,
         DATE_FORMAT(p.data_fim_proj, '%d/%m/%Y') as data_fim_proj,
         p.progresso_projeto,
-        pp.tipo as user_role
+        pp.tipo as user_role,
+        o.valor as orcamemto_total
       FROM projetos p
       JOIN projetos_participantes pp ON p.id_projeto = pp.id_projeto
       LEFT JOIN areas_atuacao a ON p.area_atuacao_id = a.id
       LEFT JOIN instituicoes i ON p.id_empresa = i.id_empresa
+      LEFT JOIN orcamento o ON p.id_projeto = o.id_projeto
       WHERE pp.id_usuario = ?
       ORDER BY p.data_inicio_proj DESC
     `, [userId]);
@@ -171,11 +199,14 @@ export const getProjectDetails = async (req: Request, res: Response) => {
         i.id_empresa,
         i.nome_empresa,
         i.cnpj,
+        o.id_orcamento,
+        o.valor as orcamento_total,
         DATE_FORMAT(p.data_inicio_proj, '%d/%m/%Y') as data_inicio_proj,
         DATE_FORMAT(p.data_fim_proj, '%d/%m/%Y') as data_fim_proj
       FROM projetos p
       LEFT JOIN areas_atuacao a ON p.area_atuacao_id = a.id
       LEFT JOIN instituicoes i ON p.id_empresa = i.id_empresa
+      LEFT JOIN orcamento o ON p.id_projeto = o.id_projeto
       WHERE p.id_projeto = ?`,
       [id_projeto]
     );
@@ -184,6 +215,14 @@ export const getProjectDetails = async (req: Request, res: Response) => {
       connection.release();
       return res.status(404).json({ error: 'Projeto não encontrado' });
     }
+
+    const [atividadesOrcamento] = await connection.query<(OrcamentoAtividade & RowDataPacket)[]>(`
+      SELECT oa.*, pa.nome_atividade 
+      FROM orcamento_ati oa
+      JOIN projetos_atividades pa ON oa.id_atividade = pa.id_atividade
+      WHERE oa.id_orcamento = ?`,
+      [project[0].id_orcamento]
+    );
 
     // Obtém participantes
     const [participants] = await connection.query<(Participant & RowDataPacket)[]>(`
@@ -196,7 +235,8 @@ export const getProjectDetails = async (req: Request, res: Response) => {
     const response = {
       ...project[0],
       user_role: userRole,
-      participantes: participants
+      participantes: participants,
+      atividadesComOrcamento: atividadesOrcamento
     };
 
     res.json(response);
@@ -215,7 +255,9 @@ export const updateProject = async (req: Request, res: Response) => {
   const connection = await pool.getConnection();
   try {
     const projectId = req.params.id;
-    const { nome_projeto, area_atuacao_id, descricao_projeto, data_fim_proj, id_empresa } = req.body;
+    const { nome_projeto, area_atuacao_id, descricao_projeto, data_fim_proj, id_empresa, valor } = req.body;
+
+    await connection.beginTransaction();
     
     // Verifica se a nova instituição existe
     if (id_empresa) {
@@ -237,6 +279,42 @@ export const updateProject = async (req: Request, res: Response) => {
        WHERE id_projeto = ?`,
       [nome_projeto, descricao_projeto, area_atuacao_id, data_fim_proj, id_empresa, projectId]
     );
+
+        // Atualiza ou cria o orçamento se o valor foi fornecido
+    if (valor !== undefined) {
+      // Verifica se já existe um orçamento para o projeto
+      const [existingBudget] = await connection.query<Orcamento[]>(
+        'SELECT id_orcamento FROM orcamento WHERE id_projeto = ?',
+        [projectId]
+      );
+
+            if (existingBudget.length > 0) {
+        // Atualiza orçamento existente
+        await connection.query<ResultSetHeader>(
+          'UPDATE orcamento SET valor = ? WHERE id_projeto = ?',
+          [valor, projectId]
+        );
+      } else {
+        // Cria novo orçamento
+        await connection.query<ResultSetHeader>(
+          'INSERT INTO orcamento (id_projeto, valor) VALUES (?, ?)',
+          [projectId, valor]
+        );
+      }
+    }
+
+    await connection.commit();
+    
+    // Retorna mensagem de sucesso com informação sobre o orçamento
+    const response: {
+      message: string;
+      orcamento_atualizado?: boolean;
+    } = { message: 'Projeto atualizado com sucesso' };
+
+    if (valor !== undefined) {
+      response.orcamento_atualizado = true;
+    }
+
     
     res.json({ message: 'Projeto atualizado com sucesso' });
   } catch (error) {

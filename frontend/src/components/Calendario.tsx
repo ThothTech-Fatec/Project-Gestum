@@ -1,16 +1,65 @@
-import React, { useState } from "react";
+import axios from "axios";
+import React, { useState, useEffect } from "react";
 
-interface CalendarioProps {
-  dataInicio: string;
-  dataFim: string;
+interface Props {
+  projetoId: number;
+  dataInicio?: string;
+  dataFim?: string;
 }
 
-const Calendario: React.FC<CalendarioProps> = ({ dataInicio, dataFim }) => {
+interface CalendarStyles {
+  container: React.CSSProperties;
+  header: React.CSSProperties;
+  grid: React.CSSProperties;
+  diaSemana: React.CSSProperties;
+  dia: React.CSSProperties;
+  diaVazio: React.CSSProperties;
+}
+
+const CalendarioProjeto: React.FC<Props> = ({ projetoId, dataInicio, dataFim }) => {
   const [mesAtual, setMesAtual] = useState(new Date().getMonth());
   const [anoAtual, setAnoAtual] = useState(new Date().getFullYear());
+  const [datasProjeto, setDatasProjeto] = useState({
+    inicio: null as Date | null,
+    fim: null as Date | null
+  });
+  
 
-  const inicio = new Date(dataInicio);
-  const fim = new Date(dataFim);
+  useEffect(() => {
+    const parseDate = (dateString: string) => {
+      const [day, month, year] = dateString.split('/').map(Number);
+      return new Date(year, month - 1, day);
+    };
+
+    const fetchDatasProjeto = async () => {
+      try {
+        const response = await axios.get(`http://localhost:5000/datasinicio_fim/${projetoId}`);
+        const { data_inicio_proj, data_fim_proj } = response.data;
+
+        setDatasProjeto({
+          inicio: parseDate(data_inicio_proj),
+          fim: parseDate(data_fim_proj)
+        });
+      } catch (error) {
+        console.error("Erro ao buscar datas:", error);
+      }
+    };
+
+    if (!dataInicio || !dataFim) {
+      fetchDatasProjeto();
+    } else {
+      setDatasProjeto({
+        inicio: parseDate(dataInicio),
+        fim: parseDate(dataFim)
+      });
+    }
+  }, [projetoId, dataInicio, dataFim]);
+
+  const formatarMesAno = (ano: number, mes: number) => {
+    return new Date(ano, mes)
+      .toLocaleString('pt-BR', { month: 'long', year: 'numeric' })
+      .replace(/^./, match => match.toUpperCase());
+  };
 
   const diasNoMes = new Date(anoAtual, mesAtual + 1, 0).getDate();
   const primeiroDiaSemana = new Date(anoAtual, mesAtual, 1).getDay();
@@ -29,15 +78,47 @@ const Calendario: React.FC<CalendarioProps> = ({ dataInicio, dataFim }) => {
     }
   };
 
+  const isUmaSemanaAntes = (data: Date) => {
+    if (!datasProjeto.fim) return false;
+    const dataFinal = new Date(datasProjeto.fim);
+    const umaSemanaAntes = new Date(dataFinal);
+    umaSemanaAntes.setDate(dataFinal.getDate() - 7); // Subtrai 7 dias
+
+    // Verifica se a data está entre uma semana antes e a data final
+    return data >= umaSemanaAntes && data <= dataFinal;
+  };
+    const isDataInicial = (data: Date) => {
+    return datasProjeto.inicio && data.toDateString() === datasProjeto.inicio.toDateString();
+  };
+
+  const isDataFinal = (data: Date) => {
+    return datasProjeto.fim && data.toDateString() === datasProjeto.fim.toDateString();
+  };
+
+
+
+
   const isDentroDoPeriodo = (data: Date) => {
+    if (!datasProjeto.inicio || !datasProjeto.fim) return false;
+
+    const inicio = new Date(datasProjeto.inicio);
+    const fim = new Date(datasProjeto.fim);
+    
+    inicio.setHours(0, 0, 0, 0);
+    fim.setHours(23, 59, 59, 999);
+    
     return data >= inicio && data <= fim;
   };
+
+  if (!datasProjeto.inicio || !datasProjeto.fim) {
+    return <div>Carregando datas do projeto...</div>;
+  }
 
   return (
     <div style={styles.container}>
       <div style={styles.header}>
         <button onClick={() => mudarMes(-1)}>◀</button>
-        <h2>{new Date(anoAtual, mesAtual).toLocaleString("pt-BR", { month: "long", year: "numeric" }).replace(/^./, (match) => match.toUpperCase())}</h2>
+        <h2>{formatarMesAno(anoAtual, mesAtual)}</h2>
         <button onClick={() => mudarMes(1)}>▶</button>
       </div>
       <div style={styles.grid}>
@@ -50,15 +131,30 @@ const Calendario: React.FC<CalendarioProps> = ({ dataInicio, dataFim }) => {
         {diasArray.map((dia) => {
           const dataAtual = new Date(anoAtual, mesAtual, dia);
           const isHighlighted = isDentroDoPeriodo(dataAtual);
+          const isInicio = isDataInicial(dataAtual);
+          const isFim = isDataFinal(dataAtual);
+          const isUmaSemanaAntesDia = isUmaSemanaAntes(dataAtual);
+
 
           return (
             <div
               key={dia}
               style={{
                 ...styles.dia,
-                backgroundColor: isHighlighted ? "green" : "transparent",
-                color: isHighlighted ? "white" : "black",
+                backgroundColor: isInicio
+                  ? "#4CAF50" // Verde para a data inicial
+                  : isFim
+                  ? "#F44336" // Vermelho para a data final
+                  : isUmaSemanaAntesDia
+                  ? "#FF9800" // Amarelo escuro para uma semana antes da data final
+                  : isHighlighted
+                  ? "#E0E0E0" // Cor neutra para as datas dentro do período
+                  : "transparent", // Sem cor para os outros dias
+                color: isInicio || isFim || isUmaSemanaAntesDia ? "white" : isHighlighted ? "black" : "black", // Textos claros para os destaques
+                fontWeight: isInicio || isFim || isUmaSemanaAntesDia ? "bold" : isHighlighted ? "normal" : "normal" // Textos em negrito para destaques importantes
               }}
+                title={isInicio ? "Data Inicial" : isFim ? "Data Final" : isUmaSemanaAntesDia ? "Uma Semana Antes" : ""}
+
             >
               {dia}
             </div>
@@ -69,43 +165,49 @@ const Calendario: React.FC<CalendarioProps> = ({ dataInicio, dataFim }) => {
   );
 };
 
-const styles = {
+const styles: CalendarStyles = {
   container: {
-    textAlign: "center" as const,
-    padding: "10px",
+    textAlign: "center",
+    padding: "20px",
     fontFamily: "Arial, sans-serif",
+    maxWidth: "350px",
+    margin: "0 auto"
   },
   header: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: "10px",
+    marginBottom: "15px",
+    padding: "10px",
+    borderRadius: "5px"
   },
   grid: {
     display: "grid",
-    gridTemplateColumns: "repeat(7, 40px)",
-    gap: "5px",
-    justifyContent: "center",
+    gridTemplateColumns: "repeat(7, 1fr)",
+    gap: "8px",
+    justifyContent: "center"
   },
   diaSemana: {
     fontWeight: "bold",
-    textAlign: "center" as const,
+    textAlign: "center",
+    padding: "8px 0",
+    fontSize: "14px"
   },
   dia: {
-    width: "40px",
-    height: "40px",
+    padding: "10px 0",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
     borderRadius: "5px",
     fontSize: "14px",
     cursor: "pointer",
-    border: "1px solid #ddd",
+    border: "1px solid #e0e0e0",
+    transition: "all 0.2s ease"
   },
   diaVazio: {
-    width: "40px",
-    height: "40px",
-  },
+    padding: "10px 0",
+    visibility: "hidden" as const
+  }
 };
 
-export default Calendario;
+export default CalendarioProjeto;

@@ -82,6 +82,7 @@ const Home = () => {
   const [filtroInstituicao, setFiltroInstituicao] = useState<number | null>(null);
   const [filtroResponsavel, setFiltroResponsavel] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
+  const [valorOrcamento, setValorOrcamento] = useState<string>("");
 
   // Fechar dropdown ao clicar fora
   useEffect(() => {
@@ -426,7 +427,7 @@ useEffect(() => {
   };
 
   const salvarProjeto = async () => {
-    if (nomeProjeto.trim() === "" || descricaoProjeto.trim() === "" || datafimProjeto.trim() === "") {
+    if (nomeProjeto.trim() === "" || descricaoProjeto.trim() === "" || datafimProjeto.trim() === "" || valorOrcamento.trim()==="") {
       alert("Preencha todos os campos!");
       return;
     }
@@ -435,6 +436,12 @@ useEffect(() => {
       alert("Selecione uma área de atuação!");
       return;
     }
+
+    const valorNumerico = parseFloat(valorOrcamento.replace(',', '.'));
+  if (isNaN(valorNumerico)) {
+    alert("Valor do orçamento inválido!");
+    return;
+  }
   
     try {
       const userId = localStorage.getItem('UserID');
@@ -450,7 +457,8 @@ useEffect(() => {
         data_fim_proj: datafimProjeto,
         userId: userId,
         area_atuacao_id: selectedArea,
-        id_empresa: selectedInstituicao
+        id_empresa: selectedInstituicao,
+        valor: valorNumerico
       });
   
       setProjetos(prev => [...prev, response.data]);
@@ -594,55 +602,77 @@ useEffect(() => {
         <p>{projeto.responsavel}</p>
         <p><strong>Data de Inicio: </strong>{projeto.data_inicio_formatada}</p>
         <p><strong>Data de Entrega: </strong>{projeto.data_fim_formatada}</p>
-        <ProgressBar progress={projeto.progresso_projeto || 0} />
+        <ProgressBar projetoId={projeto.id_projeto} />
       </div>
     </div>
   );
 
-  const renderDetalhesProjeto = () => (
-    <div className="modal-proj">
-      <button className="botao-fechar-proj" onClick={fecharModal}>
-        &times;
-      </button>
-      <h2>Detalhes do {projetoSelecionado?.nome_projeto}</h2>  
-      <p><strong>Área:</strong> {projetoSelecionado?.nome_area}</p>
-      
-      <div className="instituicao-detalhes">
-      <h3>Instituição Responsável</h3>
-      <p><strong>Nome:</strong> {projetoSelecionado?.nome_empresa}</p>
-      {projetoSelecionado?.cnpj && (
-        <div className="cnpj-container">
-          <span className="cnpj-label">CNPJ:</span>
-          <p className="cnpj-value">
-            {formatCNPJ(projetoSelecionado.cnpj)}
-          </p>
-        </div>
-      )}
-      </div>
-      
-      <p><strong>Descrição:</strong> {projetoSelecionado?.descricao_projeto}</p>
-      <p><strong>Responsável:</strong> {projetoSelecionado?.responsavel}</p>
-      <p><strong>Data de Início:</strong> {projetoSelecionado?.data_inicio_formatada}</p>
-      <p><strong>Data de Entrega:</strong> {projetoSelecionado?.data_fim_formatada}</p>
-      
-      <div className="progress-container">
-        <ProgressBar progress={projetoSelecionado?.progresso_projeto || 0} />
-      </div>
-      
-      {projetoSelecionado && usuarioPodeEditar(projetoSelecionado) ? (
-        <div className="botoes">
-          <button className="excluir-proj-home" onClick={() => excluirProjeto(projetoSelecionado.id_projeto)}>
-            Excluir
+  const renderDetalhesProjeto = () => {
+    if (!projetoSelecionado) {
+      return (
+        <div className="modal-proj">
+          <button className="botao-fechar-proj" onClick={fecharModal}>
+            &times;
           </button>
-          <button className="atualizar-proj-home" onClick={() => abrirModalAtualizar(projetoSelecionado)}>
-            Atualizar
-          </button>
+          <div className="no-project-selected">
+            <h2>Nenhum projeto selecionado</h2>
+            <p>Selecione um projeto para visualizar os detalhes</p>
+          </div>
         </div>
-      ) : (
-        <p className="info-permissao">Você tem permissão apenas para visualizar este projeto.</p>
-      )}
-    </div>
-  );
+      );
+    }
+
+    return (
+      <div className="modal-proj">
+        <button className="botao-fechar-proj" onClick={fecharModal}>
+          &times;
+        </button>
+        <h2>Detalhes do {projetoSelecionado.nome_projeto}</h2>  
+        <p><strong>Área:</strong> {projetoSelecionado.nome_area || 'Não definida'}</p>
+        
+        <div className="instituicao-detalhes">
+          <h3>Instituição Responsável</h3>
+          <p><strong>Nome:</strong> {projetoSelecionado.nome_empresa || 'Não definida'}</p>
+          {projetoSelecionado.cnpj && (
+            <div className="cnpj-container">
+              <span className="cnpj-label">CNPJ:</span>
+              <p className="cnpj-value">
+                {formatCNPJ(projetoSelecionado.cnpj)}
+              </p>
+            </div>
+          )}
+        </div>
+        
+        <p><strong>Descrição:</strong> {projetoSelecionado.descricao_projeto}</p>
+        <p><strong>Responsável:</strong> {projetoSelecionado.responsavel}</p>
+        <p><strong>Data de Início:</strong> {projetoSelecionado.data_inicio_formatada}</p>
+        <p><strong>Data de Entrega:</strong> {projetoSelecionado.data_fim_formatada}</p>
+        
+        <div className="progress-container">
+          <ProgressBar projetoId={projetoSelecionado.id_projeto} />
+        </div>
+        
+        {usuarioPodeEditar(projetoSelecionado) ? (
+          <div className="botoes">
+            <button 
+              className="excluir-proj-home" 
+              onClick={() => excluirProjeto(projetoSelecionado.id_projeto)}
+            >
+              Excluir
+            </button>
+            <button 
+              className="atualizar-proj-home" 
+              onClick={() => abrirModalAtualizar(projetoSelecionado)}
+            >
+              Atualizar
+            </button>
+          </div>
+        ) : (
+          <p className="info-permissao">Você tem permissão apenas para visualizar este projeto.</p>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="container">
@@ -814,7 +844,7 @@ useEffect(() => {
             <p><strong>Data de Entrega:</strong> {projetoSelecionado?.data_fim_formatada}</p>
             
             <div className="progress-container">
-              <ProgressBar progress={projetoSelecionado?.progresso_projeto || 0} />
+              <ProgressBar projetoId={projetoSelecionado?.id_projeto || 0} />
             </div>
             
             {projetoSelecionado && usuarioPodeEditar(projetoSelecionado) ? (
@@ -868,6 +898,21 @@ useEffect(() => {
                 rows={3}
               />
             </div>
+
+        <div className="input-container">
+        <label className="input-label">Orçamento (R$)</label>
+        <input
+          type="text"
+          value={valorOrcamento}
+          onChange={(e) => {
+            const value = e.target.value.replace(/[^0-9,.]/g, '');
+            setValorOrcamento(value);
+          }}
+          className="input-field"
+          placeholder="Digite o valor do orçamento"
+        />
+      </div>
+
   
             <div className="input-container">
               <label className="input-label">Área de Atuação</label>
@@ -999,6 +1044,20 @@ useEffect(() => {
                 rows={3}
               />
             </div>
+
+       <div className="input-container">
+        <label className="input-label">Orçamento (R$)</label>
+        <input
+          type="text"
+          value={valorOrcamento}
+          onChange={(e) => {
+            const value = e.target.value.replace(/[^0-9,.]/g, '');
+            setValorOrcamento(value);
+          }}
+          className="input-field"
+          placeholder="Digite o valor do orçamento"
+        />
+      </div>
             
             <div className="input-container">
               <label className="input-label">Área de Atuação</label>
