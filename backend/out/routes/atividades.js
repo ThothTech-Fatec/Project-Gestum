@@ -1,7 +1,14 @@
 import pool from '../config/dbconnection.js';
+import { criarNotificacao, NOTIFICATION_TYPES } from './criarNotificacao.js';
 export const listarAtividades = async (req, res) => {
     try {
         const { projectId } = req.query;
+        if (!projectId || isNaN(Number(projectId))) {
+            return res.status(400).json({
+                success: false,
+                error: 'ID do projeto inválido ou não fornecido'
+            });
+        }
         const [atividades] = await pool.query(`
       SELECT 
         pa.id_atividade,
@@ -18,7 +25,7 @@ export const listarAtividades = async (req, res) => {
       WHERE pa.id_projeto = ?
       GROUP BY pa.id_atividade
       ORDER BY pa.realizada ASC, pa.fim_atividade DESC
-    `, [projectId]);
+    `, [Number(projectId)]);
         res.json({ success: true, data: atividades });
     }
     catch (error) {
@@ -31,11 +38,11 @@ export const listarAtividades = async (req, res) => {
 };
 export const criarAtividade = async (req, res) => {
     try {
-        const { id_projeto, nome_atividade, descricao_atividade, storypoint_atividade, participantes, isResponsavel, inicio_atividade, fim_atividade } = req.body;
-        if (!id_projeto || !nome_atividade || !descricao_atividade) {
+        const { id_projeto, nome_atividade, descricao_atividade, storypoint_atividade, participantes, isResponsavel, inicio_atividade, fim_atividade, userId } = req.body;
+        if (!id_projeto || !nome_atividade || !descricao_atividade || !userId) {
             return res.status(400).json({
                 success: false,
-                error: 'Campos obrigatórios: id_projeto, nome_atividade, descricao_atividade'
+                error: 'Campos obrigatórios: id_projeto, nome_atividade, descricao_atividade, userId'
             });
         }
         if (!isResponsavel) {
@@ -47,22 +54,48 @@ export const criarAtividade = async (req, res) => {
         const connection = await pool.getConnection();
         await connection.beginTransaction();
         try {
+            // Get user info first
+            const [user] = await connection.query('SELECT nome_usuario FROM usuarios WHERE id_usuario = ?', [userId]);
+            if (user.length === 0) {
+                await connection.rollback();
+                return res.status(404).json({
+                    success: false,
+                    error: 'Usuário não encontrado'
+                });
+            }
+            const nomeUsuario = user[0].nome_usuario;
+            // Insert activity
             const [result] = await connection.query(`INSERT INTO projetos_atividades 
-         (id_projeto, nome_atividade, descricao_atividade, storypoint_atividade,inicio_atividade,fim_atividade)
-         VALUES (?, ?, ?, ?, ?, ?)`, [id_projeto, nome_atividade, descricao_atividade, storypoint_atividade || null, inicio_atividade || null, fim_atividade || null]);
+         (id_projeto, nome_atividade, descricao_atividade, storypoint_atividade, inicio_atividade, fim_atividade)
+         VALUES (?, ?, ?, ?, ?, ?)`, [
+                id_projeto,
+                nome_atividade,
+                descricao_atividade,
+                storypoint_atividade || null,
+                inicio_atividade || null,
+                fim_atividade || null
+            ]);
             const idAtividade = result.insertId;
+            // Add responsible users if any
             if (participantes && participantes.length > 0) {
-                const [users] = await connection.query(`SELECT id_usuario FROM usuarios WHERE email_usuario IN (?)`, [participantes]);
+                const [users] = await connection.query(`SELECT id_usuario, nome_usuario FROM usuarios WHERE email_usuario IN (?)`, [participantes]);
                 if (users.length > 0) {
                     const responsaveisValues = users.map(user => [idAtividade, user.id_usuario]);
                     await connection.query(`INSERT INTO responsaveis_atividade (id_atividade, id_responsavel) VALUES ?`, [responsaveisValues]);
+                    // Notify each added responsible
+                    for (const user of users) {
+                        await criarNotificacao(NOTIFICATION_TYPES.RESPONSAVEL_ADICIONADO, `${user.nome_usuario} foi adicionado(a) como responsável na atividade: ${nome_atividade}`, id_projeto, userId, idAtividade, 'atividade');
+                    }
                 }
             }
+            // Notify activity creation
+            await criarNotificacao(NOTIFICATION_TYPES.ATIVIDADE_CRIADA, `${nomeUsuario} criou a atividade: ${nome_atividade}`, id_projeto, userId, idAtividade, 'atividade');
             await connection.commit();
             res.status(201).json({
                 success: true,
                 message: 'Atividade criada com sucesso',
-                id_atividade: idAtividade
+                id_atividade: idAtividade,
+                nome_criador: nomeUsuario
             });
         }
         catch (error) {
@@ -84,20 +117,48 @@ export const criarAtividade = async (req, res) => {
 export const deletarAtividade = async (req, res) => {
     try {
         const { id } = req.params;
-        const { isResponsavel } = req.body;
+        const { isResponsavel, userId } = req.body;
         if (!isResponsavel) {
             return res.status(403).json({
                 success: false,
                 error: 'Apenas responsáveis podem deletar atividades'
             });
         }
+        const atividadeId = Number(id);
+        if (isNaN(atividadeId)) {
+            return res.status(400).json({
+                success: false,
+                error: 'ID da atividade inválido'
+            });
+        }
         const connection = await pool.getConnection();
         await connection.beginTransaction();
         try {
-            // Primeiro deletar os responsáveis associados
-            await connection.query(`DELETE FROM responsaveis_atividade WHERE id_atividade = ?`, [id]);
-            // Depois deletar a atividade
-            const [result] = await connection.query(`DELETE FROM projetos_atividades WHERE id_atividade = ?`, [id]);
+            // Get user info first
+            const [user] = await connection.query('SELECT nome_usuario FROM usuarios WHERE id_usuario = ?', [userId]);
+            if (user.length === 0) {
+                await connection.rollback();
+                return res.status(404).json({
+                    success: false,
+                    error: 'Usuário não encontrado'
+                });
+            }
+            const nomeUsuario = user[0].nome_usuario;
+            // Get activity data
+            const [atividade] = await connection.query(`SELECT nome_atividade, id_projeto FROM projetos_atividades WHERE id_atividade = ?`, [atividadeId]);
+            if (atividade.length === 0) {
+                await connection.rollback();
+                return res.status(404).json({
+                    success: false,
+                    error: 'Atividade não encontrada'
+                });
+            }
+            const nomeAtividade = atividade[0].nome_atividade;
+            const projetoId = atividade[0].id_projeto;
+            // Remove responsibles
+            await connection.query(`DELETE FROM responsaveis_atividade WHERE id_atividade = ?`, [atividadeId]);
+            // Remove activity
+            const [result] = await connection.query(`DELETE FROM projetos_atividades WHERE id_atividade = ?`, [atividadeId]);
             if (result.affectedRows === 0) {
                 await connection.rollback();
                 return res.status(404).json({
@@ -105,10 +166,13 @@ export const deletarAtividade = async (req, res) => {
                     error: 'Atividade não encontrada'
                 });
             }
+            // Notify deletion
+            await criarNotificacao(NOTIFICATION_TYPES.ATIVIDADE_DELETADA, `${nomeUsuario} removeu a atividade: ${nomeAtividade}`, projetoId, userId, null, 'atividade');
             await connection.commit();
             res.json({
                 success: true,
-                message: 'Atividade deletada com sucesso'
+                message: 'Atividade deletada com sucesso',
+                nome_removedor: nomeUsuario
             });
         }
         catch (error) {
@@ -130,29 +194,83 @@ export const deletarAtividade = async (req, res) => {
 export const marcarComoRealizada = async (req, res) => {
     try {
         const { id } = req.params;
-        const { emailUsuario, realizada } = req.body;
-        const [responsavel] = await pool.query(`SELECT 1 FROM responsaveis_atividade ra
-       JOIN usuarios u ON ra.id_responsavel = u.id_usuario
-       WHERE ra.id_atividade = ? AND u.email_usuario = ?`, [id, emailUsuario]);
-        if (responsavel.length === 0) {
-            return res.status(403).json({
+        const { emailUsuario, realizada, userId } = req.body;
+        const atividadeId = Number(id);
+        if (isNaN(atividadeId)) {
+            return res.status(400).json({
                 success: false,
-                error: 'Apenas responsáveis podem alterar o status da atividade'
+                error: 'ID da atividade inválido'
             });
         }
-        const [result] = await pool.query(`UPDATE projetos_atividades 
-       SET realizada = ?, fim_atividade = ${realizada ? 'CURRENT_TIMESTAMP' : 'NULL'}
-       WHERE id_atividade = ?`, [realizada, id]);
-        if (result.affectedRows === 0) {
-            return res.status(404).json({
-                success: false,
-                error: 'Atividade não encontrada'
+        const connection = await pool.getConnection();
+        await connection.beginTransaction();
+        try {
+            // Get user info first
+            const [currentUser] = await connection.query('SELECT nome_usuario FROM usuarios WHERE id_usuario = ?', [userId]);
+            if (currentUser.length === 0) {
+                await connection.rollback();
+                return res.status(404).json({
+                    success: false,
+                    error: 'Usuário não encontrado'
+                });
+            }
+            const nomeUsuario = currentUser[0].nome_usuario;
+            // Check if is responsible
+            const [responsavel] = await connection.query(`SELECT u.id_usuario, u.nome_usuario FROM responsaveis_atividade ra
+         JOIN usuarios u ON ra.id_responsavel = u.id_usuario
+         WHERE ra.id_atividade = ? AND u.email_usuario = ?`, [atividadeId, emailUsuario]);
+            if (responsavel.length === 0) {
+                await connection.rollback();
+                return res.status(403).json({
+                    success: false,
+                    error: 'Apenas responsáveis podem alterar o status da atividade'
+                });
+            }
+            const responsavelNome = responsavel[0].nome_usuario;
+            // Get activity data
+            const [atividade] = await connection.query(`SELECT nome_atividade, id_projeto FROM projetos_atividades WHERE id_atividade = ?`, [atividadeId]);
+            if (atividade.length === 0) {
+                await connection.rollback();
+                return res.status(404).json({
+                    success: false,
+                    error: 'Atividade não encontrada'
+                });
+            }
+            const nomeAtividade = atividade[0].nome_atividade;
+            const projetoId = atividade[0].id_projeto;
+            // Update status
+            const [result] = await connection.query(`UPDATE projetos_atividades 
+         SET realizada = ?, fim_atividade = ?
+         WHERE id_atividade = ?`, [realizada, realizada ? new Date() : null, atividadeId]);
+            if (result.affectedRows === 0) {
+                await connection.rollback();
+                return res.status(404).json({
+                    success: false,
+                    error: 'Atividade não encontrada'
+                });
+            }
+            // Notify status change
+            const tipoNotificacao = realizada
+                ? NOTIFICATION_TYPES.ATIVIDADE_CONCLUIDA
+                : NOTIFICATION_TYPES.ATIVIDADE_RETOMADA;
+            const mensagem = realizada
+                ? `${responsavelNome} concluiu a atividade: ${nomeAtividade}`
+                : `${responsavelNome} retomou a atividade: ${nomeAtividade}`;
+            await criarNotificacao(tipoNotificacao, mensagem, projetoId, userId, atividadeId, 'atividade');
+            await connection.commit();
+            res.json({
+                success: true,
+                message: `Atividade ${realizada ? 'marcada como realizada' : 'desmarcada como realizada'}`,
+                nome_responsavel: responsavelNome
             });
         }
-        res.json({
-            success: true,
-            message: `Atividade ${realizada ? 'marcada como realizada' : 'desmarcada como realizada'}`
-        });
+        catch (error) {
+            await connection.rollback();
+            throw error;
+        }
+        finally {
+            connection.release();
+        }
     }
     catch (error) {
         console.error('Erro ao atualizar status da atividade:', error);
@@ -162,11 +280,19 @@ export const marcarComoRealizada = async (req, res) => {
         });
     }
 };
+// Rota para atualizar atividade
 export const atualizarAtividade = async (req, res) => {
     try {
         const { id } = req.params;
-        const { nome_atividade, descricao_atividade, storypoint_atividade, participantes, isResponsavel, inicio_atividade, fim_atividade } = req.body;
-        // Validações básicas
+        const activityId = Number(id);
+        if (isNaN(activityId)) {
+            return res.status(400).json({
+                success: false,
+                error: 'ID da atividade inválido',
+            });
+        }
+        const { nome_atividade, descricao_atividade, storypoint_atividade, participantes, isResponsavel, userId } = req.body;
+        // Validações básicas (mantidas iguais)
         if (!isResponsavel) {
             return res.status(403).json({
                 success: false,
@@ -182,57 +308,69 @@ export const atualizarAtividade = async (req, res) => {
         const connection = await pool.getConnection();
         await connection.beginTransaction();
         try {
-            // Atualizar os dados da atividade
+            // Obter dados da atividade (simplificado)
+            const [atividade] = await connection.query(`SELECT nome_atividade, id_projeto FROM projetos_atividades WHERE id_atividade = ?`, [activityId]);
+            if (atividade.length === 0) {
+                await connection.rollback();
+                return res.status(404).json({ error: 'Atividade não encontrada' });
+            }
+            const projetoId = atividade[0].id_projeto;
+            const nomeAtividade = atividade[0].nome_atividade;
+            // Obter nome do editor
+            const [editor] = await connection.query('SELECT nome_usuario FROM usuarios WHERE id_usuario = ?', [userId]);
+            if (editor.length === 0) {
+                await connection.rollback();
+                return res.status(404).json({ error: 'Usuário editor não encontrado' });
+            }
+            const nomeEditor = editor[0].nome_usuario;
+            // Atualizar atividade (código mantido igual)
             const [result] = await connection.query(`UPDATE projetos_atividades 
-         SET nome_atividade = ?, descricao_atividade = ?, storypoint_atividade = ?,inicio_atividade = ?, fim_atividade = ?
-         WHERE id_atividade = ?`, [nome_atividade, descricao_atividade,
-                storypoint_atividade && !isNaN(storypoint_atividade) ? storypoint_atividade : null, inicio_atividade || null, fim_atividade || null,
-                id]);
+         SET nome_atividade = ?, descricao_atividade = ?, storypoint_atividade = ?
+         WHERE id_atividade = ?`, [
+                nome_atividade,
+                descricao_atividade,
+                storypoint_atividade && !isNaN(storypoint_atividade) ? storypoint_atividade : null,
+                activityId
+            ]);
             if (result.affectedRows === 0) {
                 await connection.rollback();
-                return res.status(404).json({
-                    success: false,
-                    error: 'Atividade não encontrada',
-                });
+                return res.status(404).json({ error: 'Atividade não encontrada' });
             }
-            // Atualizar responsáveis de forma mais eficiente
-            if (participantes) {
-                // Primeiro obtemos os atuais
-                const [currentResponsibles] = await connection.query(`SELECT u.email_usuario 
-           FROM responsaveis_atividade ra
-           JOIN usuarios u ON ra.id_responsavel = u.id_usuario
-           WHERE ra.id_atividade = ?`, [id]);
-                const currentEmails = currentResponsibles.map(r => r.email_usuario);
-                const newEmails = participantes || [];
-                // Encontrar diferenças
-                const toAdd = newEmails.filter((email) => !currentEmails.includes(email));
-                const toRemove = currentEmails.filter((email) => !newEmails.includes(email));
-                // Executar alterações
-                if (toRemove.length > 0) {
-                    await connection.query(`DELETE ra FROM responsaveis_atividade ra
-             JOIN usuarios u ON ra.id_responsavel = u.id_usuario
-             WHERE ra.id_atividade = ? AND u.email_usuario IN (?)`, [id, toRemove]);
-                }
-                if (toAdd.length > 0) {
-                    const [users] = await connection.query(`SELECT id_usuario FROM usuarios 
-             WHERE email_usuario IN (${toAdd.map(() => '?').join(',')})`, toAdd);
-                    if (users.length > 0) {
-                        const responsaveisValues = users.map(user => [id, user.id_usuario]);
-                        await connection.query(`INSERT INTO responsaveis_atividade (id_atividade, id_responsavel) VALUES ?`, [responsaveisValues]);
+            // Gerenciar responsáveis com notificações atualizadas
+            if (participantes && Array.isArray(participantes)) {
+                await connection.query('DELETE FROM responsaveis_atividade WHERE id_atividade = ?', [activityId]);
+                if (participantes.length > 0) {
+                    const [novosResponsaveis] = await connection.query('SELECT id_usuario, nome_usuario FROM usuarios WHERE email_usuario IN (?)', [participantes]);
+                    if (novosResponsaveis.length > 0) {
+                        // Inserir novos responsáveis
+                        const valoresResponsaveis = novosResponsaveis.map(user => [activityId, user.id_usuario]);
+                        await connection.query('INSERT INTO responsaveis_atividade (id_atividade, id_responsavel) VALUES ?', [valoresResponsaveis]);
+                        // Criar lista de nomes para notificação
+                        const nomesResponsaveis = novosResponsaveis.map(u => u.nome_usuario).join(', ');
+                        // Notificação geral sobre os novos responsáveis
+                        await criarNotificacao(NOTIFICATION_TYPES.RESPONSAVEL_ADICIONADO, `${nomeEditor} adicionou ${nomesResponsaveis} como responsáveis pela atividade "${nomeAtividade}"`, projetoId, null, // Notificação geral (sem usuário específico)
+                        activityId, 'atividade');
                     }
                 }
             }
+            // Notificação principal simplificada
+            await criarNotificacao(NOTIFICATION_TYPES.ATIVIDADE_ATUALIZADA, `${nomeEditor} atualizou a atividade "${nomeAtividade}"`, projetoId, null, // Notificação geral
+            activityId, 'atividade');
             await connection.commit();
-            // Retornar a atividade atualizada
-            const [updatedActivity] = await connection.query(`SELECT * FROM projetos_atividades WHERE id_atividade = ?`, [id]);
-            res.json({
+            return res.json({
                 success: true,
-                data: updatedActivity[0],
                 message: 'Atividade atualizada com sucesso',
+                data: {
+                    id_atividade: activityId,
+                    nome_atividade,
+                    descricao_atividade,
+                    storypoint_atividade
+                }
             });
         }
         catch (error) {
             await connection.rollback();
+            console.error('Erro na transação:', error);
             throw error;
         }
         finally {
@@ -243,35 +381,74 @@ export const atualizarAtividade = async (req, res) => {
         console.error('Erro ao atualizar atividade:', error);
         res.status(500).json({
             success: false,
-            error: error instanceof Error ? error.message : 'Erro interno ao atualizar atividade',
+            error: 'Erro interno ao atualizar atividade'
         });
     }
 };
 export const atualizarResponsavelAtividade = async (req, res) => {
     try {
         const { id } = req.params;
-        const { userId, isResponsavel } = req.body;
+        const { userId, isResponsavel, currentUserId } = req.body;
+        const atividadeId = Number(id);
+        if (isNaN(atividadeId)) {
+            return res.status(400).json({
+                success: false,
+                error: 'ID da atividade inválido'
+            });
+        }
         const connection = await pool.getConnection();
         await connection.beginTransaction();
         try {
+            // Get user info first
+            const [user] = await connection.query('SELECT nome_usuario FROM usuarios WHERE id_usuario = ?', [userId]);
+            const [currentUser] = await connection.query('SELECT nome_usuario FROM usuarios WHERE id_usuario = ?', [currentUserId]);
+            if (user.length === 0 || currentUser.length === 0) {
+                await connection.rollback();
+                return res.status(404).json({
+                    success: false,
+                    error: 'Usuário não encontrado'
+                });
+            }
+            const userName = user[0].nome_usuario;
+            const currentUserName = currentUser[0].nome_usuario;
+            // Get activity data
+            const [atividade] = await connection.query(`SELECT nome_atividade, id_projeto FROM projetos_atividades WHERE id_atividade = ?`, [atividadeId]);
+            if (atividade.length === 0) {
+                await connection.rollback();
+                return res.status(404).json({
+                    success: false,
+                    error: 'Atividade não encontrada'
+                });
+            }
+            const atividadeNome = atividade[0].nome_atividade;
+            const projetoId = atividade[0].id_projeto;
+            // Check if already responsible
+            const [existing] = await connection.query(`SELECT 1 FROM responsaveis_atividade 
+         WHERE id_atividade = ? AND id_responsavel = ?`, [atividadeId, userId]);
             if (isResponsavel) {
-                // Verificar se já é responsável
-                const [existing] = await connection.query(`SELECT 1 FROM responsaveis_atividade 
-           WHERE id_atividade = ? AND id_responsavel = ?`, [id, userId]);
                 if (existing.length === 0) {
                     await connection.query(`INSERT INTO responsaveis_atividade (id_atividade, id_responsavel)
-             VALUES (?, ?)`, [id, userId]);
+             VALUES (?, ?)`, [atividadeId, userId]);
+                    // Notify user added
+                    await criarNotificacao(NOTIFICATION_TYPES.RESPONSAVEL_ADICIONADO, `${userName} foi adicionado(a) como responsável na atividade: ${atividadeNome}`, projetoId, currentUserId, atividadeId, 'atividade');
                 }
             }
             else {
-                // Remover como responsável
-                await connection.query(`DELETE FROM responsaveis_atividade 
-           WHERE id_atividade = ? AND id_responsavel = ?`, [id, userId]);
+                if (existing.length > 0) {
+                    await connection.query(`DELETE FROM responsaveis_atividade 
+             WHERE id_atividade = ? AND id_responsavel = ?`, [atividadeId, userId]);
+                    // Notify user removed
+                    await criarNotificacao(NOTIFICATION_TYPES.RESPONSAVEL_REMOVIDO, `${userName} foi removido(a) como responsável da atividade: ${atividadeNome}`, projetoId, currentUserId, atividadeId, 'atividade');
+                }
             }
+            // General notification
+            await criarNotificacao(isResponsavel ? NOTIFICATION_TYPES.RESPONSAVEL_ADICIONADO : NOTIFICATION_TYPES.RESPONSAVEL_REMOVIDO, `${currentUserName} ${isResponsavel ? 'adicionou' : 'removeu'} ${userName} como responsável na atividade: ${atividadeNome}`, projetoId, currentUserId, atividadeId, 'atividade');
             await connection.commit();
             res.json({
                 success: true,
-                message: `Responsável ${isResponsavel ? 'adicionado' : 'removido'} com sucesso`
+                message: `Responsável ${isResponsavel ? 'adicionado' : 'removido'} com sucesso`,
+                nome_operador: currentUserName,
+                nome_usuario_afetado: userName
             });
         }
         catch (error) {
@@ -293,6 +470,13 @@ export const atualizarResponsavelAtividade = async (req, res) => {
 export const obterParticipantesProjeto = async (req, res) => {
     try {
         const { projectId } = req.params;
+        const projetoId = Number(projectId);
+        if (isNaN(projetoId)) {
+            return res.status(400).json({
+                success: false,
+                error: 'ID do projeto inválido'
+            });
+        }
         const [participantes] = await pool.query(`SELECT 
          u.id_usuario, 
          u.email_usuario, 
@@ -300,7 +484,7 @@ export const obterParticipantesProjeto = async (req, res) => {
          pp.tipo
        FROM projetos_participantes pp
        JOIN usuarios u ON pp.id_usuario = u.id_usuario
-       WHERE pp.id_projeto = ?`, [projectId]);
+       WHERE pp.id_projeto = ?`, [projetoId]);
         res.json({
             success: true,
             data: participantes
@@ -317,6 +501,13 @@ export const obterParticipantesProjeto = async (req, res) => {
 export const obterDetalhesAtividade = async (req, res) => {
     try {
         const { id } = req.params;
+        const atividadeId = Number(id);
+        if (isNaN(atividadeId)) {
+            return res.status(400).json({
+                success: false,
+                error: 'ID da atividade inválido'
+            });
+        }
         const [atividade] = await pool.query(`
       SELECT 
         pa.id_atividade,
@@ -332,7 +523,7 @@ export const obterDetalhesAtividade = async (req, res) => {
       LEFT JOIN usuarios u ON ra.id_responsavel = u.id_usuario
       WHERE pa.id_atividade = ?
       GROUP BY pa.id_atividade
-    `, [id]);
+    `, [atividadeId]);
         if (atividade.length === 0) {
             return res.status(404).json({
                 success: false,
