@@ -91,7 +91,7 @@ const Atividades = () => {
 
   useEffect(() => {
     const userEmail = localStorage.getItem('UserEmail') || '';
-    const userId = parseInt(localStorage.getItem('UserID') || '');
+    const userId = parseInt(localStorage.getItem('UserID') || '0');
     
     setCurrentUserEmail(userEmail);
     setCurrentUserId(userId);
@@ -155,7 +155,7 @@ const Atividades = () => {
 
   const handleCriarAtividade = async () => {
     try {
-      if (!nome || !descricao || !projectId) {
+      if (!nome || !descricao || !projectId || !currentUserId) {
         setSnackbarMessage('Preencha todos os campos obrigatórios');
         return;
       }
@@ -169,7 +169,8 @@ const Atividades = () => {
         descricao_atividade: descricao,
         storypoint_atividade: storyPointValue,
         participantes: participantesEmails,
-        isResponsavel: isResponsavelProjeto
+        isResponsavel: isResponsavelProjeto,
+        userId: currentUserId
       });
 
       if (response.data.success) {
@@ -193,29 +194,28 @@ const Atividades = () => {
     }
   };
 
-const handleOpenEdit = (atividade: Atividade) => {
-  setCurrentEditId(atividade.id_atividade); // Armazena o ID
-  setNome(atividade.nome_atividade);
-  setDescricao(atividade.descricao_atividade);
-  setStorypoint(atividade.storypoint_atividade || '');
-  
-  // Preencher responsáveis
-  if (atividade.responsaveis) {
-    const responsaveis = participantesProjeto.filter(participante => 
-      atividade.responsaveis?.split(',').includes(participante.email)
-    );
-    setSelectedParticipants(responsaveis);
-  }
-  
-  setOpenEdit(true);
-};
+  const handleOpenEdit = (atividade: Atividade) => {
+    setCurrentEditId(atividade.id_atividade); 
+    setNome(atividade.nome_atividade);
+    setDescricao(atividade.descricao_atividade);
+    setStorypoint(atividade.storypoint_atividade || '');
+    
+    if (atividade.responsaveis) {
+      const responsaveis = participantesProjeto.filter(participante => 
+        atividade.responsaveis?.split(',').includes(participante.email)
+      );
+      setSelectedParticipants(responsaveis);
+    }
+    
+    setOpenEdit(true);
+  };
 
 const handleEditarAtividade = async () => {
   try {
     setIsLoadingAction(true);
     
-    if (!currentEditId) {
-      setSnackbarMessage('ID da atividade não encontrado');
+    if (!currentEditId || !currentUserId) {
+      setSnackbarMessage('ID da atividade ou usuário não encontrado');
       return;
     }
 
@@ -232,13 +232,14 @@ const handleEditarAtividade = async () => {
       descricao_atividade: descricao,
       storypoint_atividade: storyPointValue,
       participantes: participantesEmails,
-      isResponsavel: isResponsavelProjeto
+      isResponsavel: isResponsavelProjeto,
+      userId: currentUserId
     });
 
     if (response.data.success) {
       setSnackbarMessage('Atividade atualizada com sucesso!');
       setOpenEdit(false);
-      fetchAtividades(); // Recarrega a lista
+      fetchAtividades();
     } else {
       setSnackbarMessage(response.data.error || 'Erro ao atualizar');
     }
@@ -259,7 +260,10 @@ const handleEditarAtividade = async () => {
     
     try {
       const response = await axios.delete(`http://localhost:5000/atividades/${id}`, {
-        data: { isResponsavel: isResponsavelProjeto }
+        data: { 
+          isResponsavel: isResponsavelProjeto,
+          userId: currentUserId
+        }
       });
       if (response.data.success) {
         setSnackbarMessage('Atividade deletada com sucesso!');
@@ -271,17 +275,15 @@ const handleEditarAtividade = async () => {
     }
   };
 
-  
-
   const handleMarcarRealizada = async (id: number, realizada: boolean) => {
     setIsLoadingAction(true);
     try {
       const atividade = atividades.find(a => a.id_atividade === id);
-      if (!atividade?.isCurrentUserResponsavel) {
+      if (!atividade?.isCurrentUserResponsavel || !currentUserId) {
         setSnackbarMessage('Apenas responsáveis podem marcar atividades como concluídas');
         return;
       }
-  
+
       setAtividades(prev => prev.map(a => 
         a.id_atividade === id ? { 
           ...a, 
@@ -289,16 +291,17 @@ const handleEditarAtividade = async () => {
           data_conclusao: realizada ? new Date().toISOString() : undefined
         } : a
       ));
-  
+
       const response = await axios.put(`http://localhost:5000/${id}/realizada`, {
         emailUsuario: currentUserEmail,
-        realizada
+        realizada,
+        userId: currentUserId
       });
-  
+
       if (!response.data.success) {
         throw new Error(response.data.error || 'Erro ao atualizar atividade');
       }
-  
+
       setSnackbarMessage(`Atividade ${realizada ? 'concluída' : 'reaberta'} com sucesso!`);
       if (realizada) {
         setTimeout(() => setTabValue(2), 1000);
@@ -321,16 +324,16 @@ const handleEditarAtividade = async () => {
   const handleToggleResponsavel = async (idAtividade: number, isResponsavel: boolean) => {
     try {
       setIsLoadingAction(true);
-      const userId = currentUserId;
       
-      if (!userId) {
+      if (!currentUserId) {
         setSnackbarMessage('Usuário não identificado');
         return;
       }
-  
+
       const response = await axios.put(`http://localhost:5000/${idAtividade}/responsavel`, {
-        userId,
-        isResponsavel
+        userId: currentUserId,
+        isResponsavel,
+        currentUserId: currentUserId
       });
       
       if (response.data.success) {
@@ -432,7 +435,6 @@ const handleEditarAtividade = async () => {
             flexWrap: 'wrap',
             gap: 1
           }}>
-            {/* Mostra o status da atividade */}
             {atividade.realizada ? (
               <>
                 {atividade.storypoint_atividade && atividade.storypoint_atividade > 0 && (
@@ -507,7 +509,6 @@ const handleEditarAtividade = async () => {
             </Stack>
           </Box>
   
-          {/* Data de status */}
           {atividade.realizada && atividade.data_conclusao ? (
             <Typography variant="caption" sx={{ color: 'text.secondary' }}>
               Concluída em: {new Date(atividade.data_conclusao).toLocaleDateString('pt-BR', {
@@ -534,20 +535,16 @@ const handleEditarAtividade = async () => {
             Deletar
           </Button>
           <IconButton 
-  onClick={() => handleOpenEdit(atividade)} 
-  color="primary"
-  aria-label="editar"
->
-  <EditIcon />
-</IconButton>
-
+            onClick={() => handleOpenEdit(atividade)} 
+            color="primary"
+            aria-label="editar"
+          >
+            <EditIcon />
+          </IconButton>
         </CardActions>
       )}
     </Card>
   );
-
-
-
 
   if (!projectId) {
     return (
@@ -714,7 +711,7 @@ const handleEditarAtividade = async () => {
             </Typography>
             <TextField
               fullWidth
-              label="Nome da Atividade "
+              label="Nome da Atividade *"
               value={nome}
               onChange={(e) => setNome(e.target.value)}
               margin="normal"
@@ -722,7 +719,7 @@ const handleEditarAtividade = async () => {
             />
             <TextField
               fullWidth
-              label="Descrição "
+              label="Descrição *"
               value={descricao}
               onChange={(e) => setDescricao(e.target.value)}
               multiline
@@ -801,116 +798,115 @@ const handleEditarAtividade = async () => {
           </Box>
         </Modal>
       )}
+
       {isResponsavelProjeto && (
-  <Modal open={openEdit} onClose={() => setOpenEdit(false)}>
-    <Box
-      sx={{
-        position: 'absolute',
-        top: '50%',
-        left: '50%',
-        transform: 'translate(-50%, -50%)',
-        width: { xs: '90%', sm: 600 },
-        bgcolor: 'background.paper',
-        borderRadius: 3,
-        boxShadow: 24,
-        p: 4,
-        maxHeight: '90vh',
-        overflowY: 'auto'
-      }}
-    >
-      <Typography variant="h5" gutterBottom sx={{ mb: 3, fontWeight: 600 }}>
-        Editar Atividade
-      </Typography>
-      <TextField
-        fullWidth
-        label="Nome da Atividade *"
-        value={nome}
-        onChange={(e) => setNome(e.target.value)}
-        margin="normal"
-        required
-      />
-      <TextField
-        fullWidth
-        label="Descrição *"
-        value={descricao}
-        onChange={(e) => setDescricao(e.target.value)}
-        multiline
-        rows={3}
-        margin="normal"
-        required
-      />
-      <TextField
-        fullWidth
-        label="Story Points"
-        type="number"
-        value={storypoint}
-        onChange={(e) => setStorypoint(e.target.value ? parseInt(e.target.value) : '')}
-        margin="normal"
-        inputProps={{ min: 0 }}
-      />
-      <Autocomplete
-        multiple
-        options={participantesProjeto}
-        getOptionLabel={(option) => `${option.nome} (${option.email})`}
-        value={selectedParticipants}
-        onChange={(_, newValue) => {
-          setSelectedParticipants(newValue);
-        }}
-        loading={loadingParticipants}
-        renderInput={(params) => (
-          <TextField
-            {...params}
-            label="Responsáveis"
-            placeholder="Digite para buscar"
-            margin="normal"
-          />
-        )}
-        renderOption={(props, option) => (
-          <li {...props}>
-            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <UserAvatar email={option.email} size={24} />
-              <Box sx={{ ml: 1 }}>
-                <Typography>{option.nome}</Typography>
-                <Typography variant="caption" color="textSecondary">
-                  {option.email}
-                </Typography>
-              </Box>
-            </Box>
-          </li>
-        )}
-        renderTags={(value, getTagProps) =>
-          value.map((option, index) => (
-            <Chip
-              {...getTagProps({ index })}
-              key={option.id_usuario}
-              label={`${option.nome} (${option.email})`}
-              avatar={<UserAvatar email={option.email} size={24} />}
-              size="small"
+        <Modal open={openEdit} onClose={() => setOpenEdit(false)}>
+          <Box
+            sx={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: { xs: '90%', sm: 600 },
+              bgcolor: 'background.paper',
+              borderRadius: 3,
+              boxShadow: 24,
+              p: 4,
+              maxHeight: '90vh',
+              overflowY: 'auto'
+            }}
+          >
+            <Typography variant="h5" gutterBottom sx={{ mb: 3, fontWeight: 600 }}>
+              Editar Atividade
+            </Typography>
+            <TextField
+              fullWidth
+              label="Nome da Atividade *"
+              value={nome}
+              onChange={(e) => setNome(e.target.value)}
+              margin="normal"
+              required
             />
-          ))
-        }
-      />
-      <Box mt={3} display="flex" justifyContent="flex-end" gap={1}>
-        <Button 
-          onClick={() => setOpenEdit(false)} 
-          variant="outlined"
-          sx={{ borderRadius: 1 }}
-        >
-          Cancelar
-        </Button>
+            <TextField
+              fullWidth
+              label="Descrição *"
+              value={descricao}
+              onChange={(e) => setDescricao(e.target.value)}
+              multiline
+              rows={3}
+              margin="normal"
+              required
+            />
+            <TextField
+              fullWidth
+              label="Story Points"
+              type="number"
+              value={storypoint}
+              onChange={(e) => setStorypoint(e.target.value ? parseInt(e.target.value) : '')}
+              margin="normal"
+              inputProps={{ min: 0 }}
+            />
+            <Autocomplete
+              multiple
+              options={participantesProjeto}
+              getOptionLabel={(option) => `${option.nome} (${option.email})`}
+              value={selectedParticipants}
+              onChange={(_, newValue) => {
+                setSelectedParticipants(newValue);
+              }}
+              loading={loadingParticipants}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Responsáveis"
+                  placeholder="Digite para buscar"
+                  margin="normal"
+                />
+              )}
+              renderOption={(props, option) => (
+                <li {...props}>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <UserAvatar email={option.email} size={24} />
+                    <Box sx={{ ml: 1 }}>
+                      <Typography>{option.nome}</Typography>
+                      <Typography variant="caption" color="textSecondary">
+                        {option.email}
+                      </Typography>
+                    </Box>
+                  </Box>
+                </li>
+              )}
+              renderTags={(value, getTagProps) =>
+                value.map((option, index) => (
+                  <Chip
+                    {...getTagProps({ index })}
+                    key={option.id_usuario}
+                    label={`${option.nome} (${option.email})`}
+                    avatar={<UserAvatar email={option.email} size={24} />}
+                    size="small"
+                  />
+                ))
+              }
+            />
+            <Box mt={3} display="flex" justifyContent="flex-end" gap={1}>
               <Button 
-        onClick={handleEditarAtividade} 
-        variant="contained"
-        disabled={!nome || !descricao || isLoadingAction}
-      >
+                onClick={() => setOpenEdit(false)} 
+                variant="outlined"
+                sx={{ borderRadius: 1 }}
+              >
+                Cancelar
+              </Button>
+              <Button 
+                onClick={handleEditarAtividade} 
+                variant="contained"
+                disabled={!nome || !descricao || isLoadingAction}
+              >
                 {isLoadingAction ? 'Salvando...' : 'Salvar Alterações'}
-
-      </Button>
-      </Box>
-    </Box>
-  </Modal>
-)}
-
+              </Button>
+            </Box>
+          </Box>
+        </Modal>
+      )}
 
       <Snackbar
         open={!!snackbarMessage}

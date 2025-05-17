@@ -162,7 +162,8 @@ export const updateProject = async (req, res) => {
     const connection = await pool.getConnection();
     try {
         const projectId = req.params.id;
-        const { nome_projeto, area_atuacao_id, descricao_projeto, data_fim_proj, id_empresa } = req.body;
+        const { nome_projeto, area_atuacao_id, descricao_projeto, data_fim_proj, id_empresa, valor } = req.body;
+        await connection.beginTransaction();
         // Verifica se a nova instituição existe
         if (id_empresa) {
             const [instituicao] = await connection.query('SELECT id_empresa FROM instituicoes WHERE id_empresa = ?', [id_empresa]);
@@ -175,6 +176,25 @@ export const updateProject = async (req, res) => {
        SET nome_projeto = ?, descricao_projeto = ?, area_atuacao_id = ?, 
            data_fim_proj = ?, id_empresa = ?
        WHERE id_projeto = ?`, [nome_projeto, descricao_projeto, area_atuacao_id, data_fim_proj, id_empresa, projectId]);
+        // Atualiza ou cria o orçamento se o valor foi fornecido
+        if (valor !== undefined) {
+            // Verifica se já existe um orçamento para o projeto
+            const [existingBudget] = await connection.query('SELECT id_orcamento FROM orcamento WHERE id_projeto = ?', [projectId]);
+            if (existingBudget.length > 0) {
+                // Atualiza orçamento existente
+                await connection.query('UPDATE orcamento SET valor = ? WHERE id_projeto = ?', [valor, projectId]);
+            }
+            else {
+                // Cria novo orçamento
+                await connection.query('INSERT INTO orcamento (id_projeto, valor) VALUES (?, ?)', [projectId, valor]);
+            }
+        }
+        await connection.commit();
+        // Retorna mensagem de sucesso com informação sobre o orçamento
+        const response = { message: 'Projeto atualizado com sucesso' };
+        if (valor !== undefined) {
+            response.orcamento_atualizado = true;
+        }
         res.json({ message: 'Projeto atualizado com sucesso' });
     }
     catch (error) {

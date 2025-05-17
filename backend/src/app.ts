@@ -16,7 +16,9 @@
   import { atualizarAtividade, atualizarResponsavelAtividade, criarAtividade, deletarAtividade, listarAtividades, marcarComoRealizada, obterParticipantesProjeto } from './routes/atividades.js';
   import { criarInstituicao, listarInstituicoes } from './routes/Instituicoes.js';
   import { DatasInicio_Fim } from './routes/Calendario.js';
-import { getStoryPointsByStatus } from './routes/ProgressBar.js';
+  import { getStoryPointsByStatus } from './routes/ProgressBar.js';
+  import{listarNotificacoes} from './routes/notificationController.js'
+
 
 
   const app = express();
@@ -64,6 +66,10 @@ import { getStoryPointsByStatus } from './routes/ProgressBar.js';
   app.get('/datasinicio_fim/:id', DatasInicio_Fim  )
   app.get('/progressStoryPoints/:id', getStoryPointsByStatus)
   app.put('/atividades/:id', atualizarAtividade)
+  
+// Rotas de notificação
+  app.get('/api/notificacoes', listarNotificacoes);
+
 
   // Rota de imagem de perfil
   app.get('/profileimage/:userEmail', GetProfileImage);

@@ -22,6 +22,7 @@ type Projeto = {
   id_empresa?: number;
   nome_empresa?: string;
   cnpj?: string;
+  status?: string;
 };
 
 type AreaAtuacao = {
@@ -34,6 +35,8 @@ type Instituicao = {
   nome_empresa: string;
   cnpj: string;
 };
+
+type StatusProjeto = 'todos' | 'nao_iniciado' | 'em_andamento' | 'concluido';
 
 const api = axios.create({
   baseURL: 'http://localhost:5000',
@@ -49,6 +52,12 @@ const formatCNPJ = (cnpj: string) => {
     );
   }
   return cnpj;
+};
+
+const getStatusProjeto = (progresso: number = 0): StatusProjeto => {
+  if (progresso <= 0) return 'nao_iniciado';
+  if (progresso >= 100) return 'concluido';
+  return 'em_andamento';
 };
 
 const Home = () => {
@@ -81,10 +90,10 @@ const Home = () => {
   const [filtroArea, setFiltroArea] = useState<number | null>(null);
   const [filtroInstituicao, setFiltroInstituicao] = useState<number | null>(null);
   const [filtroResponsavel, setFiltroResponsavel] = useState<string | null>(null);
+  const [filtroStatus, setFiltroStatus] = useState<StatusProjeto>('todos');
   const [isOpen, setIsOpen] = useState(false);
   const [valorOrcamento, setValorOrcamento] = useState<string>("");
 
-  // Fechar dropdown ao clicar fora
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (isOpen && !(e.target as Element).closest('.filter-container')) {
@@ -179,7 +188,6 @@ const Home = () => {
       });
   
       const projetosFormatados = response.data.map((projeto: any) => {
-        // Encontra a área correspondente pelo ID ou pelo nome
         const areaCorrespondente = areasAtuacao.find(a => 
           a.id === Number(projeto.area_atuacao_id) || 
           a.nome.toLowerCase() === projeto.nome_area?.toLowerCase()
@@ -191,8 +199,8 @@ const Home = () => {
           nome_area: areaCorrespondente ? areaCorrespondente.nome : projeto.nome_area || 'Não definida',
           data_inicio_formatada: formatarDataParaExibicao(projeto.data_inicio_proj),
           data_fim_formatada: formatarDataParaExibicao(projeto.data_fim_proj),
-          // Garante que o user_role está definido
-          user_role: projeto.user_role || 'equipe'
+          user_role: projeto.user_role || 'equipe',
+          progresso_projeto: projeto.progresso_projeto || 0
         };
       });
   
@@ -204,99 +212,102 @@ const Home = () => {
     }
   }, [formatarDataParaExibicao, areasAtuacao]);
 
-
   const filtrarProjetos = useCallback(() => {
-    return projetos.filter(projeto => {
-      // Filtro por área (convertendo ambos para número para garantir)
-      if (filtroArea !== null && Number(projeto.area_atuacao_id) !== Number(filtroArea)) {
-        return false;
-      }
-  
-      // Filtro por instituição
-      if (filtroInstituicao !== null && projeto.id_empresa !== filtroInstituicao) {
-        return false;
-      }
-  
-      // Filtro por responsável
-      if (filtroResponsavel) {
-        if (filtroResponsavel === 'meus' && projeto.user_role !== 'responsavel') return false;
-        if (filtroResponsavel === 'equipe' && projeto.user_role === 'responsavel') return false;
-      }
-  
-      return true;
-    });
-  }, [projetos, filtroArea, filtroInstituicao, filtroResponsavel]);
+    return projetos
+      .map(projeto => ({
+        ...projeto,
+        status: getStatusProjeto(projeto.progresso_projeto)
+      }))
+      .filter(projeto => {
+        if (filtroStatus !== 'todos' && projeto.status !== filtroStatus) {
+          return false;
+        }
+
+        if (filtroArea !== null && Number(projeto.area_atuacao_id) !== Number(filtroArea)) {
+          return false;
+        }
+    
+        if (filtroInstituicao !== null && projeto.id_empresa !== filtroInstituicao) {
+          return false;
+        }
+    
+        if (filtroResponsavel) {
+          if (filtroResponsavel === 'meus' && projeto.user_role !== 'responsavel') return false;
+          if (filtroResponsavel === 'equipe' && projeto.user_role === 'responsavel') return false;
+        }
+        
+        return true;
+      })
+      .sort((a, b) => (a.progresso_projeto || 0) - (b.progresso_projeto || 0));
+  }, [projetos, filtroStatus, filtroArea, filtroInstituicao, filtroResponsavel]);
 
   const projetosFiltrados = filtrarProjetos();
 
-useEffect(() => {
-  const loadUserId = () => {
-    const id = localStorage.getItem('UserID');
-    const loggedIn = localStorage.getItem('Logado') === 'true';
-    
-    setIsLoggedIn(loggedIn);
-    
-    if (!id || !loggedIn) {
-      navigate('/');
-      return null;
-    }
-    
-    setUserId(id);
-    return id;
-  };
-
-  const id = loadUserId();
-  if (id) {
-    const loadData = async () => {
-      try {
-        // Carrega áreas de atuação primeiro
-        const areasResponse = await api.get('/areas');
-        const areasFormatadas = areasResponse.data.map((area: any) => ({
-          id: Number(area.id),
-          nome: area.nome
-        }));
-        setAreasAtuacao(areasFormatadas);
-
-        // Depois carrega instituições
-        const instituicoesResponse = await api.get('/getinstituicoes');
-        setInstituicoes(instituicoesResponse.data.map((inst: any) => ({
-          ...inst,
-          cnpj: inst.cnpj || ''
-        })));
-
-        // Finalmente carrega projetos com as áreas já disponíveis
-        const projetosResponse = await api.get('/user_projects', { 
-          params: { userId: id }
-        });
-
-        const projetosFormatados = projetosResponse.data.map((projeto: any) => {
-          // Encontra a área correspondente
-          const areaCorrespondente = areasFormatadas.find(a => 
-            a.id === Number(projeto.area_atuacao_id) || 
-            a.nome.toLowerCase() === projeto.nome_area?.toLowerCase()
-          );
-
-          return {
-            ...projeto,
-            area_atuacao_id: areaCorrespondente ? areaCorrespondente.id : null,
-            nome_area: areaCorrespondente ? areaCorrespondente.nome : projeto.nome_area || 'Não definida',
-            data_inicio_formatada: formatarDataParaExibicao(projeto.data_inicio_proj),
-            data_fim_formatada: formatarDataParaExibicao(projeto.data_fim_proj),
-            user_role: projeto.user_role || 'equipe'
-          };
-        });
-
-        setProjetos(projetosFormatados);
-      } catch (error) {
-        console.error('Erro ao carregar dados:', error);
-      } finally {
-        setLoading(false);
+  useEffect(() => {
+    const loadUserId = () => {
+      const id = localStorage.getItem('UserID');
+      const loggedIn = localStorage.getItem('Logado') === 'true';
+      
+      setIsLoggedIn(loggedIn);
+      
+      if (!id || !loggedIn) {
+        navigate('/');
+        return null;
       }
+      
+      setUserId(id);
+      return id;
     };
-    
-    loadData();
-  }
-}, [navigate, formatarDataParaExibicao]);
+
+    const id = loadUserId();
+    if (id) {
+      const loadData = async () => {
+        try {
+          const areasResponse = await api.get('/areas');
+          const areasFormatadas = areasResponse.data.map((area: any) => ({
+            id: Number(area.id),
+            nome: area.nome
+          }));
+          setAreasAtuacao(areasFormatadas);
+
+          const instituicoesResponse = await api.get('/getinstituicoes');
+          setInstituicoes(instituicoesResponse.data.map((inst: any) => ({
+            ...inst,
+            cnpj: inst.cnpj || ''
+          })));
+
+          const projetosResponse = await api.get('/user_projects', { 
+            params: { userId: id }
+          });
+
+          const projetosFormatados = projetosResponse.data.map((projeto: any) => {
+            const areaCorrespondente = areasFormatadas.find(a => 
+              a.id === Number(projeto.area_atuacao_id) || 
+              a.nome.toLowerCase() === projeto.nome_area?.toLowerCase()
+            );
+
+            return {
+              ...projeto,
+              area_atuacao_id: areaCorrespondente ? areaCorrespondente.id : null,
+              nome_area: areaCorrespondente ? areaCorrespondente.nome : projeto.nome_area || 'Não definida',
+              data_inicio_formatada: formatarDataParaExibicao(projeto.data_inicio_proj),
+              data_fim_formatada: formatarDataParaExibicao(projeto.data_fim_proj),
+              user_role: projeto.user_role || 'equipe',
+              progresso_projeto: projeto.progresso_projeto || 0
+            };
+          });
+
+          setProjetos(projetosFormatados);
+        } catch (error) {
+          console.error('Erro ao carregar dados:', error);
+        } finally {
+          setLoading(false);
+        }
+      };
+      
+      loadData();
+    }
+  }, [navigate, formatarDataParaExibicao]);
 
   const navegarParaProjeto = (projeto: Projeto) => {
     localStorage.setItem('Id_Project', projeto.id_projeto.toString());
@@ -342,7 +353,8 @@ useEffect(() => {
           nome_area: areasAtuacao.find(a => a.id === projetoSelecionado.area_atuacao_id)?.nome || 
                     projetoSelecionado.nome_area,
           nome_empresa: instituicaoAtual?.nome_empresa || projetoSelecionado.nome_empresa,
-          cnpj: instituicaoAtual?.cnpj || projetoSelecionado.cnpj || ''
+          cnpj: instituicaoAtual?.cnpj || projetoSelecionado.cnpj || '',
+          progresso_projeto: projetoSelecionado.progresso_projeto || 0
         } : proj
       );
   
@@ -357,11 +369,8 @@ useEffect(() => {
 
   const salvarNovaInstituicao = async (instituicao: Instituicao) => {
     try {
-      // Adiciona a nova instituição à lista
       setInstituicoes(prev => [...prev, instituicao]);
-      // Define a nova instituição como selecionada
       setSelectedInstituicao(instituicao.id_empresa);
-      // Fecha o modal
       setModalInstituicaoAberto(false);
       return Promise.resolve();
     } catch (error) {
@@ -438,10 +447,10 @@ useEffect(() => {
     }
 
     const valorNumerico = parseFloat(valorOrcamento.replace(',', '.'));
-  if (isNaN(valorNumerico)) {
-    alert("Valor do orçamento inválido!");
-    return;
-  }
+    if (isNaN(valorNumerico)) {
+      alert("Valor do orçamento inválido!");
+      return;
+    }
   
     try {
       const userId = localStorage.getItem('UserID');
@@ -503,7 +512,8 @@ useEffect(() => {
         data_inicio_formatada: formatarDataParaExibicao(response.data.data_inicio_proj), 
         data_fim_formatada: formatarDataParaExibicao(response.data.data_fim_proj), 
         nome_empresa: response.data.nome_empresa || 'Não definida',
-        cnpj: instituicaoCompleta?.cnpj || response.data.cnpj || ''
+        cnpj: instituicaoCompleta?.cnpj || response.data.cnpj || '',
+        progresso_projeto: response.data.progresso_projeto || 0
       });
       
       setModalAbertoProj(true);
@@ -602,7 +612,10 @@ useEffect(() => {
         <p>{projeto.responsavel}</p>
         <p><strong>Data de Inicio: </strong>{projeto.data_inicio_formatada}</p>
         <p><strong>Data de Entrega: </strong>{projeto.data_fim_formatada}</p>
-        <ProgressBar projetoId={projeto.id_projeto} />
+        <ProgressBar 
+          projetoId={projeto.id_projeto} 
+          showStatus={true}
+        />
       </div>
     </div>
   );
@@ -649,7 +662,10 @@ useEffect(() => {
         <p><strong>Data de Entrega:</strong> {projetoSelecionado.data_fim_formatada}</p>
         
         <div className="progress-container">
-          <ProgressBar projetoId={projetoSelecionado.id_projeto} />
+          <ProgressBar 
+            projetoId={projetoSelecionado.id_projeto} 
+            showStatus={true}
+          />
         </div>
         
         {usuarioPodeEditar(projetoSelecionado) ? (
@@ -689,14 +705,40 @@ useEffect(() => {
                   onClick={() => setIsOpen(!isOpen)}
                 >
                   Filtrar Projetos
-                  {(filtroArea || filtroInstituicao || filtroResponsavel) && (
+                  {(filtroStatus !== 'todos' || filtroArea || filtroInstituicao || filtroResponsavel) && (
                     <span className="badge-filtro">
-                      {[filtroArea, filtroInstituicao, filtroResponsavel].filter(Boolean).length}
+                      {[
+                        filtroStatus !== 'todos' ? 1 : 0,
+                        filtroArea ? 1 : 0,
+                        filtroInstituicao ? 1 : 0,
+                        filtroResponsavel ? 1 : 0
+                      ].reduce((a, b) => a + b, 0)}
                     </span>
                   )}
                 </button>
                 
                 <div className={`dropdown-menu-container ${isOpen ? 'show' : ''}`}>
+                  <div 
+                    className="dropdown-menu-item dropdown-submenu"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <span>Status</span>
+                    <div className="submenu">
+                      {['todos', 'nao_iniciado', 'em_andamento', 'concluido'].map((status) => (
+                        <div
+                          key={status}
+                          className={`submenu-item ${filtroStatus === status ? 'active' : ''}`}
+                          onClick={() => setFiltroStatus(status as StatusProjeto)}
+                        >
+                          {status === 'todos' && 'Todos os status'}
+                          {status === 'nao_iniciado' && 'Não iniciados'}
+                          {status === 'em_andamento' && 'Em andamento'}
+                          {status === 'concluido' && 'Concluídos'}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  
                   <div 
                     className="dropdown-menu-item dropdown-submenu"
                     onClick={(e) => e.stopPropagation()}
@@ -787,8 +829,7 @@ useEffect(() => {
                     projetosFiltrados.map(renderProjetoCard)
                   ) : (
                     <div className="no-projects-message">
-                      {/* Mensagem condicional */}
-                      {!filtroArea && !filtroInstituicao && !filtroResponsavel ? (
+                      {filtroStatus === 'todos' && !filtroArea && !filtroInstituicao && !filtroResponsavel ? (
                         <>
                           <h3>Você não está participando de nenhum projeto no momento</h3>
                           <p>Clique no botão "Criar Novo Projeto" para começar</p>
@@ -802,6 +843,7 @@ useEffect(() => {
                               setFiltroArea(null);
                               setFiltroInstituicao(null);
                               setFiltroResponsavel(null);
+                              setFiltroStatus('todos');
                             }}
                           >
                             Limpar filtros
@@ -844,7 +886,10 @@ useEffect(() => {
             <p><strong>Data de Entrega:</strong> {projetoSelecionado?.data_fim_formatada}</p>
             
             <div className="progress-container">
-              <ProgressBar projetoId={projetoSelecionado?.id_projeto || 0} />
+              <ProgressBar 
+                projetoId={projetoSelecionado?.id_projeto || 0} 
+                showStatus={true}
+              />
             </div>
             
             {projetoSelecionado && usuarioPodeEditar(projetoSelecionado) ? (
@@ -899,21 +944,20 @@ useEffect(() => {
               />
             </div>
 
-        <div className="input-container">
-        <label className="input-label">Orçamento (R$)</label>
-        <input
-          type="text"
-          value={valorOrcamento}
-          onChange={(e) => {
-            const value = e.target.value.replace(/[^0-9,.]/g, '');
-            setValorOrcamento(value);
-          }}
-          className="input-field"
-          placeholder="Digite o valor do orçamento"
-        />
-      </div>
-
-  
+            <div className="input-container">
+              <label className="input-label">Orçamento (R$)</label>
+              <input
+                type="text"
+                value={valorOrcamento}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/[^0-9,.]/g, '');
+                  setValorOrcamento(value);
+                }}
+                className="input-field"
+                placeholder="Digite o valor do orçamento"
+              />
+            </div>
+            
             <div className="input-container">
               <label className="input-label">Área de Atuação</label>
               {!showNewAreaInput ? (
@@ -969,7 +1013,7 @@ useEffect(() => {
                 </div>
               )}
             </div>
-  
+            
             {renderInstituicaoSelect()}
             
             <div className="container-data">
@@ -1045,19 +1089,19 @@ useEffect(() => {
               />
             </div>
 
-       <div className="input-container">
-        <label className="input-label">Orçamento (R$)</label>
-        <input
-          type="text"
-          value={valorOrcamento}
-          onChange={(e) => {
-            const value = e.target.value.replace(/[^0-9,.]/g, '');
-            setValorOrcamento(value);
-          }}
-          className="input-field"
-          placeholder="Digite o valor do orçamento"
-        />
-      </div>
+            <div className="input-container">
+              <label className="input-label">Orçamento (R$)</label>
+              <input
+                type="text"
+                value={valorOrcamento}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/[^0-9,.]/g, '');
+                  setValorOrcamento(value);
+                }}
+                className="input-field"
+                placeholder="Digite o valor do orçamento"
+              />
+            </div>
             
             <div className="input-container">
               <label className="input-label">Área de Atuação</label>
@@ -1111,7 +1155,7 @@ useEffect(() => {
                 </div>
               )}
             </div>
-  
+            
             {renderInstituicaoSelect()}
             
             <div className="container-data">
@@ -1151,7 +1195,7 @@ useEffect(() => {
               </button>
             </div>
           </div>
-        </div>
+        </div> 
       )}
     </div>
   );
