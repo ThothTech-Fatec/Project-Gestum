@@ -38,6 +38,8 @@ interface Atividade {
   responsaveis?: string;
   realizada: boolean;
   data_criacao?: string; 
+  inicio_atividade?: string;          // Adicione esta linha
+  data_limite_atividade?: string;     // Adicione esta linha (nome exato do campo do backend)
   data_conclusao?: string;
   isCurrentUserResponsavel?: boolean;
 }
@@ -84,6 +86,8 @@ const Atividades = () => {
   const [descricao, setDescricao] = useState('');
   const [storypoint, setStorypoint] = useState<number | ''>('');
   const [selectedParticipants, setSelectedParticipants] = useState<Participante[]>([]);
+  const [dataInicioPlanejado, setDataInicioPlanejado] = useState<string>('');
+  const [dataLimite, setDataLimite] = useState<string>('');
 
   const location = useLocation();
   const projeto = location.state?.projeto as Projeto;
@@ -170,7 +174,9 @@ const Atividades = () => {
         storypoint_atividade: storyPointValue,
         participantes: participantesEmails,
         isResponsavel: isResponsavelProjeto,
-        userId: currentUserId
+        userId: currentUserId,
+        inicio_atividade: dataInicioPlanejado,
+        data_limite_atividade: dataLimite
       });
 
       if (response.data.success) {
@@ -509,18 +515,46 @@ const handleEditarAtividade = async () => {
             </Stack>
           </Box>
   
-          {atividade.realizada && atividade.data_conclusao ? (
-            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-              Concluída em: {new Date(atividade.data_conclusao).toLocaleDateString('pt-BR', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-              })}
-            </Typography>
-          ) : null}
-        </Box>
+            {atividade.inicio_atividade && (
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                  Início Planejado: {new Date(atividade.inicio_atividade).toLocaleDateString('pt-BR', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                  })}
+                </Typography>
+              )}
+
+              {atividade.data_limite_atividade && (
+                <Typography 
+                  variant="caption" 
+                  sx={{ 
+                    color: !atividade.realizada && new Date(atividade.data_limite_atividade) < new Date() 
+                      ? 'error.main' 
+                      : 'text.secondary'
+                  }}
+                >
+                  Prazo: {new Date(atividade.data_limite_atividade).toLocaleDateString('pt-BR', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                  })}
+                  {!atividade.realizada && new Date(atividade.data_limite_atividade) < new Date() && ' (Atrasada)'}
+                </Typography>
+              )}
+
+              {atividade.realizada && atividade.data_conclusao && (
+                <Typography variant="caption" sx={{ color: 'success.main' }}>
+                  Concluída em: {new Date(atividade.data_conclusao).toLocaleDateString('pt-BR', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })}
+                </Typography>
+              )}
+            </Box>
       </CardContent>
   
       {isResponsavelProjeto && (
@@ -735,6 +769,24 @@ const handleEditarAtividade = async () => {
               onChange={(e) => setStorypoint(e.target.value ? parseInt(e.target.value) : '')}
               margin="normal"
               inputProps={{ min: 0 }}
+            />
+            <TextField
+              fullWidth
+              label="Data de Início Planejado"
+              type="date"
+              value={dataInicioPlanejado}
+              onChange={(e) => setDataInicioPlanejado(e.target.value)}
+              margin="normal"
+              InputLabelProps={{ shrink: true }}
+            />
+            <TextField
+              fullWidth
+              label="Data Limite para Conclusão"
+              type="date"
+              value={dataLimite}
+              onChange={(e) => setDataLimite(e.target.value)}
+              margin="normal"
+              InputLabelProps={{ shrink: true }}
             />
             <Autocomplete
               multiple

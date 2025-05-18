@@ -17,6 +17,7 @@ interface AtividadeRequestBody {
   isResponsavel: boolean;
   inicio_atividade?: string;
   fim_atividade?: string;
+  data_limite_atividade?: string;
   userId: number;
   emailUsuario?: string;
   realizada?: boolean;
@@ -43,6 +44,8 @@ export const listarAtividades = async (req: Request, res: Response) => {
         NULLIF(pa.storypoint_atividade, 0) as storypoint_atividade,
         GROUP_CONCAT(u.email_usuario) as responsaveis,
         CASE WHEN pa.realizada = 1 THEN TRUE ELSE FALSE END as realizada,
+        pa.inicio_atividade,
+        pa.data_limite_atividade,
         pa.fim_atividade as data_conclusao
       FROM projetos_atividades pa
       LEFT JOIN responsaveis_atividade ra ON pa.id_atividade = ra.id_atividade
@@ -73,6 +76,7 @@ export const criarAtividade = async (req: Request<{}, {}, AtividadeRequestBody>,
       isResponsavel,
       inicio_atividade,
       fim_atividade,
+      data_limite_atividade,
       userId 
     } = req.body;
 
@@ -111,15 +115,16 @@ export const criarAtividade = async (req: Request<{}, {}, AtividadeRequestBody>,
 
       const [result] = await connection.query<ResultSetHeader>(
         `INSERT INTO projetos_atividades 
-         (id_projeto, nome_atividade, descricao_atividade, storypoint_atividade, inicio_atividade, fim_atividade)
-         VALUES (?, ?, ?, ?, ?, ?)`,
+         (id_projeto, nome_atividade, descricao_atividade, storypoint_atividade, inicio_atividade, fim_atividade, data_limite_atividade)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
         [
           id_projeto, 
           nome_atividade, 
           descricao_atividade, 
           storypoint_atividade || null, 
           inicio_atividade || null, 
-          fim_atividade || null
+          fim_atividade || null,
+          data_limite_atividade || null
         ]
       );
 
