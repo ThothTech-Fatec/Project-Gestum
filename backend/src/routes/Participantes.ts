@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import pool from '../config/dbconnection.js';
 import { RowDataPacket, OkPacket, ResultSetHeader } from 'mysql2';
+import { criarNotificacao, NOTIFICATION_TYPES } from './criarNotificacao.js';
 
 interface Participant extends RowDataPacket {
     id_participante: number;
@@ -30,9 +31,9 @@ export const addParticipant = async (req: Request, res: Response) => {
         const projectId = req.params.id;
         const { email, role } = req.body;
       
-        // Encontra o id do usuário pelo email
+        // 1. Encontra o usuário pelo email
         const [user] = await pool.query<(User & RowDataPacket)[]>(
-            'SELECT id_usuario FROM usuarios WHERE email_usuario = ?', 
+            'SELECT id_usuario, nome_usuario FROM usuarios WHERE email_usuario = ?', 
             [email]
         );
       
@@ -41,7 +42,9 @@ export const addParticipant = async (req: Request, res: Response) => {
         }
 
         const userId = user[0].id_usuario;
+        const userName = user[0].nome_usuario;
       
+        // 2. Verifica se já é participante
         const [existing] = await pool.query<(Participant & RowDataPacket)[]>(
             'SELECT id_participante FROM projetos_participantes WHERE id_projeto = ? AND id_usuario = ?',
             [projectId, userId]
@@ -51,31 +54,26 @@ export const addParticipant = async (req: Request, res: Response) => {
             return res.status(400).json({ error: 'Usuário já é participante do projeto' });
         }
       
+        // 3. Adiciona como participante
         await pool.query<ResultSetHeader>(
             'INSERT INTO projetos_participantes (id_usuario, id_projeto, tipo) VALUES (?, ?, ?)',
             [userId, projectId, role || 'colaborador']
         );
       
-        const [project] = await pool.query<(Project & RowDataPacket)[]>(`
-            SELECT 
-                id_projeto,
-                nome_projeto,
-                DATE_FORMAT(data_inicio_proj, '%d/%m/%Y') as data_inicio_proj,
-                DATE_FORMAT(data_fim_proj, '%d/%m/%Y') as data_fim_proj
-            FROM projetos 
-            WHERE id_projeto = ?`, 
+        // 4. Obtém dados do projeto para notificação
+        const [project] = await pool.query<(Project & RowDataPacket)[]>(
+            'SELECT nome_projeto FROM projetos WHERE id_projeto = ?', 
             [projectId]
         );
       
-        await pool.query<ResultSetHeader>(
-            'INSERT INTO notificacoes (id_usuario, id_projeto, titulo, descricao, tipo) VALUES (?, ?, ?, ?, ?)',
-            [
-                userId,
-                projectId,
-                'Convite para projeto',
-                `Você foi adicionado ao projeto "${project[0].nome_projeto}" como ${role || 'colaborador'}`,
-                'convite'
-            ]
+        // 5. Cria notificação usando o serviço correto
+        await criarNotificacao(
+            NOTIFICATION_TYPES.PARTICIPANTE_ADICIONADO,
+            `${userName} foi adicionado(a) ao projeto "${project[0].nome_projeto}" como ${role || 'colaborador'}`,
+            Number(projectId),
+            userId,
+            null,
+            'participante'
         );
       
         res.json({ message: 'Participante adicionado com sucesso' });
@@ -90,16 +88,24 @@ export const removeParticipant = async (req: Request, res: Response) => {
         const projectId = req.params.id;
         const { participantId } = req.body;
       
-        const [participant] = await pool.query<(Participant & RowDataPacket)[]>(
-            'SELECT tipo FROM projetos_participantes WHERE id_projeto = ? AND id_usuario = ?',
+        // 1. Busca informações do participante
+        const [participantInfo] = await pool.query<(Participant & User & RowDataPacket)[]>(`
+            SELECT pp.tipo, u.nome_usuario 
+            FROM projetos_participantes pp
+            JOIN usuarios u ON pp.id_usuario = u.id_usuario
+            WHERE pp.id_projeto = ? AND pp.id_usuario = ?`,
             [projectId, participantId]
         );
       
-        if (participant.length === 0) {
+        if (participantInfo.length === 0) {
             return res.status(404).json({ error: 'Participante não encontrado neste projeto' });
         }
       
-        if (participant[0].tipo === 'responsavel') {
+        const participantName = participantInfo[0].nome_usuario;
+        const participantRole = participantInfo[0].tipo;
+      
+        // 2. Verifica se é o último responsável
+        if (participantRole === 'responsavel') {
             const [owners] = await pool.query<({count: number} & RowDataPacket)[]>(
                 'SELECT COUNT(*) as count FROM projetos_participantes WHERE id_projeto = ? AND tipo = "responsavel"',
                 [projectId]
@@ -110,9 +116,20 @@ export const removeParticipant = async (req: Request, res: Response) => {
             }
         }
       
+        // 3. Remove o participante
         await pool.query<ResultSetHeader>(
             'DELETE FROM projetos_participantes WHERE id_projeto = ? AND id_usuario = ?',
             [projectId, participantId]
+        );
+
+        // 4. Cria notificação de remoção
+        await criarNotificacao(
+            NOTIFICATION_TYPES.PARTICIPANTE_REMOVIDO,
+            `${participantName} foi removido(a) do projeto`,
+            Number(projectId),
+            participantId,
+            null,
+            'participante'
         );
       
         res.json({ message: 'Participante removido com sucesso' });
@@ -127,7 +144,7 @@ export const getProjectParticipants = async (req: Request, res: Response) => {
         const projectId = req.query.projectId; 
 
         if (!projectId) {
-            return res.status(400).json({ error: 'Project ID is required' });
+            return res.status(400).json({ error: 'ID do projeto é obrigatório' });
         }
 
         const [participants] = await pool.query<(User & Participant & RowDataPacket)[]>(`

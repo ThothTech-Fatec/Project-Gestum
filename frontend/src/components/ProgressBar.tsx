@@ -5,6 +5,7 @@ interface ProgressBarProps {
   projetoId: number;
   height?: number;
   showText?: boolean;
+  showStatus?: boolean;
   color?: string;
   backgroundColor?: string;
   textColor?: string;
@@ -18,10 +19,17 @@ interface StoryPointsResponse {
   total: number;
 }
 
+const getStatusProjeto = (progresso: number): string => {
+  if (progresso <= 0) return 'nao_iniciado';
+  if (progresso >= 100) return 'concluido';
+  return 'em_andamento';
+};
+
 const ProgressBar: React.FC<ProgressBarProps> = ({
   projetoId,
   height = 16,
   showText = true,
+  showStatus = false,
   color = '#2563eb',
   backgroundColor = '#e2e8f0',
   textColor = '#ffffff',
@@ -41,8 +49,6 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
         );
         
         const { concluido, total } = response.data;
-
-        console.log(response.data)
         const calculatedProgress = total > 0 ? Math.round((concluido / total) * 100) : 0;
         setProgress(calculatedProgress);
       } catch (err) {
@@ -59,6 +65,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
 
   const clampedProgress = Math.min(100, Math.max(0, progress));
   const calculatedBorderRadius = borderRadius ?? height / 2;
+  const status = getStatusProjeto(clampedProgress);
 
   if (loading) {
     return <div>Carregando...</div>;
@@ -69,41 +76,52 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
   }
 
   return (
-    <div className="progress-bar-container" 
-      style={{
-        width: '100%',
-        backgroundColor,
-        borderRadius: `${calculatedBorderRadius}px`,
-        height: `${height}px`,
-        overflow: 'hidden',
-        boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.1)'
-      }}
-      role="progressbar"
-      aria-valuenow={clampedProgress}
-      aria-valuemin={0}
-      aria-valuemax={100}
-    >
+    <div className="progress-container">
       <div 
-        className="progress-bar-fill" 
-        style={{ 
-          width: `${clampedProgress}%`,
-          backgroundColor: color,
-          height: '100%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: showText ? 'flex-end' : 'center',
-          paddingRight: showText ? '10px' : '0',
-          color: textColor,
-          fontWeight: 'bold',
-          fontSize: `${Math.max(10, height * 0.5)}px`,
-          transition: `width ${transitionSpeed}ms ease-in-out`,
-          borderRadius: clampedProgress === 100 ? 
-            `${calculatedBorderRadius}px` : 
-            `${calculatedBorderRadius}px 0 0 ${calculatedBorderRadius}px`
+        className="progress-bar-container" 
+        style={{
+          width: '100%',
+          backgroundColor,
+          borderRadius: `${calculatedBorderRadius}px`,
+          height: `${height}px`,
+          overflow: 'hidden',
+          boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.1)'
         }}
+        role="progressbar"
+        aria-valuenow={clampedProgress}
+        aria-valuemin={0}
+        aria-valuemax={100}
       >
-        {showText && `${clampedProgress}%`}
+        <div 
+          className="progress-bar-fill" 
+          style={{ 
+            width: `${clampedProgress}%`,
+            backgroundColor: color,
+            height: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: showText ? 'flex-end' : 'center',
+            paddingRight: showText ? '10px' : '0',
+            color: textColor,
+            fontWeight: 'bold',
+            fontSize: `${Math.max(10, height * 0.5)}px`,
+            transition: `width ${transitionSpeed}ms ease-in-out`,
+            borderRadius: clampedProgress === 100 ? 
+              `${calculatedBorderRadius}px` : 
+              `${calculatedBorderRadius}px 0 0 ${calculatedBorderRadius}px`
+          }}
+        >
+          {showText && `${clampedProgress}%`}
+        </div>
       </div>
+      
+      {showStatus && (
+        <div className={`progress-status ${status}`}>
+          {status === 'nao_iniciado' && 'Não iniciado'}
+          {status === 'em_andamento' && 'Em andamento'}
+          {status === 'concluido' && 'Concluído'}
+        </div>
+      )}
     </div>
   );
 };

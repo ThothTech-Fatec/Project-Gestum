@@ -11,6 +11,7 @@ import { atualizarAtividade, atualizarResponsavelAtividade, criarAtividade, dele
 import { criarInstituicao, listarInstituicoes } from './routes/Instituicoes.js';
 import { DatasInicio_Fim } from './routes/Calendario.js';
 import { getStoryPointsByStatus } from './routes/ProgressBar.js';
+import { listarNotificacoes } from './routes/notificationController.js';
 const app = express();
 // Configuração do CORS
 app.use(cors({
@@ -50,6 +51,8 @@ app.put('/:id/responsavel', atualizarResponsavelAtividade);
 app.get('/datasinicio_fim/:id', DatasInicio_Fim);
 app.get('/progressStoryPoints/:id', getStoryPointsByStatus);
 app.put('/atividades/:id', atualizarAtividade);
+// Rotas de notificação
+app.get('/api/notificacoes', listarNotificacoes);
 // Rota de imagem de perfil
 app.get('/profileimage/:userEmail', GetProfileImage);
 // Middleware de erro (adicione no final, antes do listen)
