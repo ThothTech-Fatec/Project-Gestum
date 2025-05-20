@@ -1,6 +1,7 @@
 CREATE DATABASE IF NOT EXISTS gestum;
 USE gestum;
 
+select * from projetos_atividades;
 CREATE TABLE usuarios (
   id_usuario INT PRIMARY KEY AUTO_INCREMENT,
   avatar LONGBLOB,
@@ -60,6 +61,7 @@ CREATE TABLE projetos_atividades (
   realizada BOOLEAN DEFAULT FALSE,
   inicio_atividade DATETIME DEFAULT CURRENT_TIMESTAMP,
   fim_atividade DATETIME,
+  data_limite_atividade DATETIME NULL,
   FOREIGN KEY (id_projeto) REFERENCES projetos(id_projeto)
 );
 
@@ -94,3 +96,5 @@ CREATE TABLE notificacoes (
   FOREIGN KEY (projeto_id) REFERENCES projetos(id_projeto),
   FOREIGN KEY (usuario_id) REFERENCES usuarios(id_usuario)
 );
+
+select * from projetos_atividades;
