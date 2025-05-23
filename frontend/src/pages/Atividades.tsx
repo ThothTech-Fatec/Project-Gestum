@@ -22,7 +22,9 @@ import {
   Card,
   CardContent,
   CardActions,
-  Divider
+  Divider,
+  InputAdornment,
+  LinearProgress
 } from "@mui/material";
 import axios from "axios";
 import UserAvatar from "../components/UserAvatar.tsx";
@@ -37,11 +39,12 @@ interface Atividade {
   storypoint_atividade?: number | null;
   responsaveis?: string;
   realizada: boolean;
-  data_criacao?: string; 
-  inicio_atividade?: string;          // Adicione esta linha
-  data_limite_atividade?: string;     // Adicione esta linha (nome exato do campo do backend)
+  data_criacao?: string;
+  inicio_atividade?: string;
+  data_limite_atividade?: string;
   data_conclusao?: string;
   isCurrentUserResponsavel?: boolean;
+  orcamento?: number;
 }
 
 interface Participante {
@@ -65,6 +68,13 @@ interface Projeto {
   area_atuacao_id?: number;
 }
 
+interface OrcamentoResumo {
+  orcamento_total: number;
+  orcamento_utilizado: number;
+  orcamento_disponivel: number;
+  percentual_utilizado: number;
+}
+
 const Atividades = () => {
   const [open, setOpen] = useState(false);
   const [atividades, setAtividades] = useState<Atividade[]>([]);
@@ -80,11 +90,18 @@ const Atividades = () => {
   const [isLoadingAction, setIsLoadingAction] = useState(false);
   const [openEdit, setOpenEdit] = useState(false);
   const [currentEditId, setCurrentEditId] = useState<number | null>(null);
+  const [orcamentoResumo, setOrcamentoResumo] = useState<OrcamentoResumo>({
+    orcamento_total: 0,
+    orcamento_utilizado: 0,
+    orcamento_disponivel: 0,
+    percentual_utilizado: 0
+  });
 
   // Campos do formulário
   const [nome, setNome] = useState('');
   const [descricao, setDescricao] = useState('');
   const [storypoint, setStorypoint] = useState<number | ''>('');
+  const [orcamento, setOrcamento] = useState<number | null>(null);
   const [selectedParticipants, setSelectedParticipants] = useState<Participante[]>([]);
   const [dataInicioPlanejado, setDataInicioPlanejado] = useState<string>('');
   const [dataLimite, setDataLimite] = useState<string>('');
@@ -103,6 +120,7 @@ const Atividades = () => {
     if (projectId) {
       fetchAtividades();
       fetchParticipantesProjeto();
+      fetchOrcamentoResumo();
       setIsResponsavelProjeto(projeto.user_role === 'responsavel');
     }
   }, [projectId, projeto]);
@@ -125,7 +143,8 @@ const Atividades = () => {
           ...atividade, 
           storypoint_atividade: storypoint,
           isCurrentUserResponsavel: isResponsavel,
-          data_criacao: atividade.data_criacao || new Date().toISOString()
+          data_criacao: atividade.data_criacao || new Date().toISOString(),
+          orcamento: atividade.orcamento || 0
         };
       });
       
@@ -157,6 +176,29 @@ const Atividades = () => {
     }
   };
 
+const fetchOrcamentoResumo = async () => {
+  try {
+    const response = await axios.get(`http://localhost:5000/projetos/${projectId}/orcamento/resumo`);
+    const data = response.data.data;
+    
+    setOrcamentoResumo({
+      orcamento_total: Number(data.orcamento_total) || 0,
+      orcamento_utilizado: Number(data.orcamento_utilizado) || 0,
+      orcamento_disponivel: Number(data.orcamento_disponivel) || 0,
+      percentual_utilizado: Number(data.percentual_utilizado) || 0
+    });
+  } catch (error) {
+    console.error('Erro ao buscar resumo de orçamento:', error);
+    // Set default values on error
+    setOrcamentoResumo({
+      orcamento_total: 0,
+      orcamento_utilizado: 0,
+      orcamento_disponivel: 0,
+      percentual_utilizado: 0
+    });
+  }
+};
+
   const handleCriarAtividade = async () => {
     try {
       if (!nome || !descricao || !projectId || !currentUserId) {
@@ -176,17 +218,16 @@ const Atividades = () => {
         isResponsavel: isResponsavelProjeto,
         userId: currentUserId,
         inicio_atividade: dataInicioPlanejado,
-        data_limite_atividade: dataLimite
+        data_limite_atividade: dataLimite,
+        orcamento: orcamento || null
       });
 
       if (response.data.success) {
         setSnackbarMessage('Atividade criada com sucesso!');
-        setNome('');
-        setDescricao('');
-        setStorypoint('');
-        setSelectedParticipants([]);
+        resetForm();
         setOpen(false);
         fetchAtividades();
+        fetchOrcamentoResumo();
       } else {
         setSnackbarMessage(`Erro: ${response.data.error}`);
       }
@@ -200,11 +241,22 @@ const Atividades = () => {
     }
   };
 
+  const resetForm = () => {
+    setNome('');
+    setDescricao('');
+    setStorypoint('');
+    setOrcamento(0);
+    setSelectedParticipants([]);
+    setDataInicioPlanejado('');
+    setDataLimite('');
+  };
+
   const handleOpenEdit = (atividade: Atividade) => {
     setCurrentEditId(atividade.id_atividade); 
     setNome(atividade.nome_atividade);
     setDescricao(atividade.descricao_atividade);
     setStorypoint(atividade.storypoint_atividade || '');
+    setOrcamento(atividade.orcamento || 0);
     
     if (atividade.responsaveis) {
       const responsaveis = participantesProjeto.filter(participante => 
@@ -216,50 +268,52 @@ const Atividades = () => {
     setOpenEdit(true);
   };
 
-const handleEditarAtividade = async () => {
-  try {
-    setIsLoadingAction(true);
-    
-    if (!currentEditId || !currentUserId) {
-      setSnackbarMessage('ID da atividade ou usuário não encontrado');
-      return;
-    }
+  const handleEditarAtividade = async () => {
+    try {
+      setIsLoadingAction(true);
+      
+      if (!currentEditId || !currentUserId) {
+        setSnackbarMessage('ID da atividade ou usuário não encontrado');
+        return;
+      }
 
-    if (!nome || !descricao) {
-      setSnackbarMessage('Preencha todos os campos obrigatórios');
-      return;
-    }
+      if (!nome || !descricao) {
+        setSnackbarMessage('Preencha todos os campos obrigatórios');
+        return;
+      }
 
-    const participantesEmails = selectedParticipants.map(p => p.email);
-    const storyPointValue = storypoint === '' ? null : Number(storypoint);
+      const participantesEmails = selectedParticipants.map(p => p.email);
+      const storyPointValue = storypoint === '' ? null : Number(storypoint);
 
-    const response = await axios.put(`http://localhost:5000/atividades/${currentEditId}`, {
-      nome_atividade: nome,
-      descricao_atividade: descricao,
-      storypoint_atividade: storyPointValue,
-      participantes: participantesEmails,
-      isResponsavel: isResponsavelProjeto,
-      userId: currentUserId
-    });
+      const response = await axios.put(`http://localhost:5000/atividades/${currentEditId}`, {
+        nome_atividade: nome,
+        descricao_atividade: descricao,
+        storypoint_atividade: storyPointValue,
+        participantes: participantesEmails,
+        isResponsavel: isResponsavelProjeto,
+        userId: currentUserId,
+        orcamento: orcamento || null
+      });
 
-    if (response.data.success) {
-      setSnackbarMessage('Atividade atualizada com sucesso!');
-      setOpenEdit(false);
-      fetchAtividades();
-    } else {
-      setSnackbarMessage(response.data.error || 'Erro ao atualizar');
+      if (response.data.success) {
+        setSnackbarMessage('Atividade atualizada com sucesso!');
+        setOpenEdit(false);
+        fetchAtividades();
+        fetchOrcamentoResumo();
+      } else {
+        setSnackbarMessage(response.data.error || 'Erro ao atualizar');
+      }
+    } catch (error) {
+      console.error('Erro ao atualizar:', error);
+      if (axios.isAxiosError(error)) {
+        setSnackbarMessage(error.response?.data?.error || error.message);
+      } else {
+        setSnackbarMessage('Erro ao atualizar atividade');
+      }
+    } finally {
+      setIsLoadingAction(false);
     }
-  } catch (error) {
-    console.error('Erro ao atualizar:', error);
-    if (axios.isAxiosError(error)) {
-      setSnackbarMessage(error.response?.data?.error || error.message);
-    } else {
-      setSnackbarMessage('Erro ao atualizar atividade');
-    }
-  } finally {
-    setIsLoadingAction(false);
-  }
-};
+  };
 
   const handleDeletarAtividade = async (id: number) => {
     if (!window.confirm('Tem certeza que deseja deletar esta atividade?')) return;
@@ -274,6 +328,7 @@ const handleEditarAtividade = async () => {
       if (response.data.success) {
         setSnackbarMessage('Atividade deletada com sucesso!');
         fetchAtividades();
+        fetchOrcamentoResumo();
       }
     } catch (error) {
       console.error("Erro ao deletar atividade:", error);
@@ -441,6 +496,16 @@ const handleEditarAtividade = async () => {
             flexWrap: 'wrap',
             gap: 1
           }}>
+            {
+              atividade.orcamento && atividade.orcamento > 0 ? (
+                <Chip
+                  label={`R$ ${atividade.orcamento.toFixed(2)}`}
+                  color="secondary"
+                  size="small"
+                  variant="outlined"
+                />
+              ) : null
+            }
             {atividade.realizada ? (
               <>
                 {atividade.storypoint_atividade && atividade.storypoint_atividade > 0 && (
@@ -515,46 +580,45 @@ const handleEditarAtividade = async () => {
             </Stack>
           </Box>
   
-            {atividade.inicio_atividade && (
-                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                  Início Planejado: {new Date(atividade.inicio_atividade).toLocaleDateString('pt-BR', {
-                    day: '2-digit',
-                    month: '2-digit',
-                    year: 'numeric',
-                  })}
-                </Typography>
-              )}
+          {atividade.inicio_atividade && (
+            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+              Início Planejado: {new Date(atividade.inicio_atividade).toLocaleDateString('pt-BR', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+              })}
+            </Typography>
+          ) }
 
-              {atividade.data_limite_atividade && (
-                <Typography 
-                  variant="caption" 
-                  sx={{ 
-                    color: !atividade.realizada && new Date(atividade.data_limite_atividade) < new Date() 
-                      ? 'error.main' 
-                      : 'text.secondary'
-                  }}
-                >
-                  Prazo: {new Date(atividade.data_limite_atividade).toLocaleDateString('pt-BR', {
-                    day: '2-digit',
-                    month: '2-digit',
-                    year: 'numeric',
-                  })}
-                  {!atividade.realizada && new Date(atividade.data_limite_atividade) < new Date() && ' (Atrasada)'}
-                </Typography>
-              )}
-
-              {atividade.realizada && atividade.data_conclusao && (
-                <Typography variant="caption" sx={{ color: 'success.main' }}>
-                  Concluída em: {new Date(atividade.data_conclusao).toLocaleDateString('pt-BR', {
-                    day: '2-digit',
-                    month: '2-digit',
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                  })}
-                </Typography>
-              )}
-            </Box>
+          {atividade.data_limite_atividade && (
+            <Typography 
+              variant="caption" 
+              sx={{ 
+                color: !atividade.realizada && new Date(atividade.data_limite_atividade) < new Date() 
+                  ? 'error.main' 
+                  : 'text.secondary'
+              }}
+            >
+              Prazo: {new Date(atividade.data_limite_atividade).toLocaleDateString('pt-BR', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+              })}
+              {!atividade.realizada && new Date(atividade.data_limite_atividade) < new Date() && ' (Atrasada)'}
+            </Typography>
+          )}
+          {atividade.realizada && atividade.data_conclusao ? (
+            <Typography variant="caption" sx={{ color: 'success.main' }}>
+              Concluída em: {new Date(atividade.data_conclusao).toLocaleDateString('pt-BR', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+              })}
+            </Typography>
+          ) : null}
+        </Box>
       </CardContent>
   
       {isResponsavelProjeto && (
@@ -606,6 +670,44 @@ const handleEditarAtividade = async () => {
       </main>
 
       <section className="atividades-container">
+        {/* Resumo Financeiro */}
+        <Card sx={{ mb: 3, p: 2 }}>
+          <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+            Resumo Financeiro
+          </Typography>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+              <Typography>Orçamento Total:</Typography>
+              <Typography fontWeight="bold">
+                R$ {typeof orcamentoResumo.orcamento_total === 'number' ? 
+                  orcamentoResumo.orcamento_total.toLocaleString('pt-BR') || '0' : 
+                  ''}
+              </Typography>
+            </Box>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+              <Typography>Utilizado:</Typography>
+              <Typography fontWeight="bold">R$ {orcamentoResumo.orcamento_utilizado.toLocaleString('pt-BR') || '0'}</Typography>
+            </Box>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+              <Typography>Disponível:</Typography>
+              <Typography fontWeight="bold" color={orcamentoResumo.orcamento_disponivel < 0 ? 'error' : 'success'}>
+                R$ {orcamentoResumo.orcamento_disponivel.toLocaleString('pt-BR') || '0'}
+              </Typography>
+            </Box>
+            <Box sx={{ mt: 1 }}>
+              <LinearProgress 
+                variant="determinate" 
+                value={orcamentoResumo.percentual_utilizado} 
+                color={orcamentoResumo.percentual_utilizado > 100 ? 'error' : 'primary'}
+                sx={{ height: 10, borderRadius: 5 }}
+              />
+              <Typography variant="caption" display="block" textAlign="right">
+                {orcamentoResumo.percentual_utilizado}% utilizado
+              </Typography>
+            </Box>
+          </Box>
+        </Card>
+
         <Tabs 
           value={tabValue} 
           onChange={(_, newValue) => setTabValue(newValue)} 
@@ -772,6 +874,21 @@ const handleEditarAtividade = async () => {
             />
             <TextField
               fullWidth
+              label="Orçamento (R$)"
+              type="number"
+              value={orcamento === null ? '' : orcamento} 
+              onChange={(e) => setOrcamento(e.target.value ? parseFloat(e.target.value) : null)} 
+              margin="normal"
+              inputProps={{ 
+                min: 0,
+                step: "0.01"
+              }}
+              InputProps={{
+                startAdornment: <InputAdornment position="start">R$</InputAdornment>,
+              }}
+            />
+            <TextField
+              fullWidth
               label="Data de Início Planejado"
               type="date"
               value={dataInicioPlanejado}
@@ -897,6 +1014,21 @@ const handleEditarAtividade = async () => {
               onChange={(e) => setStorypoint(e.target.value ? parseInt(e.target.value) : '')}
               margin="normal"
               inputProps={{ min: 0 }}
+            />
+            <TextField
+              fullWidth
+              label="Orçamento (R$)"
+              type="number"
+              value={orcamento}
+              onChange={(e) => setOrcamento(e.target.value ? parseFloat(e.target.value) : 0)}
+              margin="normal"
+              inputProps={{ 
+                min: 0,
+                step: "0.01"
+              }}
+              InputProps={{
+                startAdornment: <InputAdornment position="start">R$</InputAdornment>,
+              }}
             />
             <Autocomplete
               multiple

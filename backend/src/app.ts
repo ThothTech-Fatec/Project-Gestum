@@ -15,7 +15,7 @@ import cors from 'cors';
   } from './routes/CrudHomeLogin.js'; 
   import { buscarAreasAtuacao, criarAreaAtuacao } from './routes/Area_Atuacao.js';
   import { addParticipant, getProjectParticipants, removeParticipant } from './routes/Participantes.js';
-  import { atualizarAtividade, atualizarResponsavelAtividade, criarAtividade, deletarAtividade, listarAtividades, marcarComoRealizada, obterParticipantesProjeto } from './routes/atividades.js';
+  import { atualizarAtividade, criarAtividade, deletarAtividade, listarAtividades, marcarComoRealizada, obterParticipantesProjeto, atualizarResponsavelAtividade, obterResumoOrcamento } from './routes/atividades.js';
   import { criarInstituicao, listarInstituicoes } from './routes/Instituicoes.js';
   import { DatasInicio_Fim } from './routes/Calendario.js';
   import { getStoryPointsByStatus } from './routes/ProgressBar.js';
@@ -81,6 +81,7 @@ interface WeeklyProgress extends RowDataPacket {
   app.get('/datasinicio_fim/:id', DatasInicio_Fim  )
   app.get('/progressStoryPoints/:id', getStoryPointsByStatus)
   app.put('/atividades/:id', atualizarAtividade)
+  app.get('/projetos/:projectId/orcamento/resumo', obterResumoOrcamento);
   
 // Rotas de notificação
   app.get('/api/notificacoes', listarNotificacoes);
@@ -89,10 +90,6 @@ interface WeeklyProgress extends RowDataPacket {
   // Rota de imagem de perfil
   app.get('/profileimage/:userEmail', GetProfileImage);
 
-  // Atualize a rota do dashboard
-  // ... (importações anteriores permanecem iguais)
-
-// ... (importações anteriores permanecem iguais)
 
 app.get('/api/dashboard/:projectId', async (req, res) => {
   try {
@@ -165,9 +162,6 @@ app.get('/api/dashboard/:projectId', async (req, res) => {
   }
 });
 
-// ... (restante do código do app.ts permanece igual)
-// ... (restante do código permanece igual)
-  // Middleware de erro (adicione no final, antes do listen)
   app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
     console.error(err.stack);
     res.status(500).send('Algo deu errado!');

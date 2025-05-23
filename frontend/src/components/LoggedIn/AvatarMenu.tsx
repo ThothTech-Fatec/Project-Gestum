@@ -16,6 +16,7 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
 import { signUp, Login} from '../services/auth.ts'; 
+import { useNavigate } from 'react-router-dom';
 
 export default function ImageAvatars() {
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
@@ -46,6 +47,7 @@ export default function ImageAvatars() {
   
 
   const [editModalOpen, setEditModalOpen] = React.useState(false);
+  const navigate = useNavigate();
 
 // Função para abrir o modal de edição
 const handleOpenEditModal = () => {
@@ -193,8 +195,9 @@ const handleCloseEditModal = () => {
     // Atualiza o estado de login
     setIsLoggedIn(false);
     
-    // Força o refresh da página
-    window.location.reload();
+    navigate('/'); // Redireciona para a página inicial
+
+    window.location.reload(); // Força o refresh da página
   };
 
   const handleOpenModal = () => {

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Bar } from "react-chartjs-2";
+import { Pie } from "react-chartjs-2";
 import { Chart, registerables } from "chart.js";
 import "../css/Dashboard.css";
 import SuperiorMenu from "../components/MenuSuperior.tsx";
@@ -28,7 +28,21 @@ interface DashboardData {
     nome_usuario: string;
     tipo: string;
   }[];
+  budget?: {
+    total: number;
+    used: number;
+    remaining: number;
+  };
+
 }
+
+interface OrcamentoResumo {
+  orcamento_total: number;
+  orcamento_utilizado: number;
+  orcamento_disponivel: number;
+  percentual_utilizado: number;
+}
+
 
 interface Projeto {
   id_projeto: number;
@@ -44,6 +58,14 @@ const Dashboard = () => {
 
   const projeto = location.state?.projeto as Projeto | undefined;
   const projectId = projeto?.id_projeto;
+
+    const [orcamento, setOrcamento] = useState<number | null>(null);
+    const [orcamentoResumo, setOrcamentoResumo] = useState<OrcamentoResumo>({
+        orcamento_total: 0,
+        orcamento_utilizado: 0,
+        orcamento_disponivel: 0,
+        percentual_utilizado: 0
+      });
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -69,10 +91,18 @@ const Dashboard = () => {
           },
         ];
 
+        // Adiciona dados de orçamento padrão se não vierem da API
+        const budgetData = response.data.budget || {
+          total: 10000,
+          used: 0,
+          remaining: 10000
+        };
+
         setData({
           ...response.data,
           tasksByStatus,
           participants: response.data.participants || [],
+          budget: budgetData
         });
       } catch (err: any) {
         console.error("Erro ao buscar dados:", err);
@@ -84,9 +114,33 @@ const Dashboard = () => {
     };
 
     if (projectId) {
+      fetchOrcamentoResumo();
       fetchDashboardData();
     }
   }, [projectId, navigate]);
+
+    const fetchOrcamentoResumo = async () => {
+    try {
+      const response = await axios.get(`http://localhost:5000/projetos/${projectId}/orcamento/resumo`);
+      const data = response.data.data;
+      
+      setOrcamentoResumo({
+        orcamento_total: Number(data.orcamento_total) || 0,
+        orcamento_utilizado: Number(data.orcamento_utilizado) || 0,
+        orcamento_disponivel: Number(data.orcamento_disponivel) || 0,
+        percentual_utilizado: Number(data.percentual_utilizado) || 0
+      });
+    } catch (error) {
+      console.error('Erro ao buscar resumo de orçamento:', error);
+      // Set default values on error
+      setOrcamentoResumo({
+        orcamento_total: 0,
+        orcamento_utilizado: 0,
+        orcamento_disponivel: 0,
+        percentual_utilizado: 0
+      });
+    }
+  };
 
   if (loading) {
     return (
@@ -136,58 +190,45 @@ const Dashboard = () => {
       ? Math.round((data.completedStoryPoints / data.totalStoryPoints) * 100)
       : 0;
 
+  const remainingTasks = data.totalTasks - data.completedTasks;
 
-      const remainingTasks = data.totalTasks - data.completedTasks;
 
-      const chartData = {
-        labels: ["Tarefas"],
-        datasets: [
-          {
-            label: "Restantes",
-            data: [remainingTasks],
-            backgroundColor: "#f6ad55", // laranja
-          },
-          {
-            label: "Concluídas",
-            data: [data.completedTasks],
-            backgroundColor: "#4bc0c0", // azul claro
-          },
-          {
-            label: "Atrasadas",
-            data: [data.overdueTasks],
-            backgroundColor: "#ff6384", // vermelho claro
-          },
+  // Dados para o gráfico de pizza
+  const pieChartData = {
+    labels: ["Concluídas", "Atrasadas", "Em andamento"],
+    datasets: [
+      {
+        data: [data.completedTasks, data.overdueTasks, remainingTasks],
+        backgroundColor: [
+          "#4bc0c0", // azul claro - concluídas
+          "#ff6384", // vermelho claro - atrasadas
+          "#f6ad55", // laranja - em andamento
         ],
-      };
-
-
-
-      const chartOptions = {
-      responsive: true,
-      plugins: {
-        tooltip: {
-          callbacks: {
-            label: (context: any) => `${context.dataset.label}: ${context.raw}`,
-          },
-        },
-        legend: {
-          position: "top" as const,
-        },
+        borderColor: "#fff",
+        borderWidth: 1,
       },
-      scales: {
-        y: {
-          beginAtZero: true,
-          title: {
-            display: true,
-            text: "Quantidade de Tarefas",
-          },
-          ticks: {
-            stepSize: 1,
+    ],
+  };
+
+  const pieChartOptions = {
+    responsive: true,
+    plugins: {
+      legend: {
+        position: "top" as const,
+      },
+      tooltip: {
+        callbacks: {
+          label: (context: any) => {
+            const label = context.label || '';
+            const value = context.raw || 0;
+            const total = context.dataset.data.reduce((a: number, b: number) => a + b, 0);
+            const percentage = Math.round((value / total) * 100);
+            return `${label}: ${value} (${percentage}%)`;
           },
         },
       },
-    };
-
+    },
+  };
 
   return (
     <div className="dashboard-container">
@@ -226,13 +267,42 @@ const Dashboard = () => {
         </div>
 
         <div className="dashboard-chart">
-          <h3>Progresso Total por Status</h3>
-          <Bar data={chartData} options={chartOptions} />
+          <h3>Distribuição de Tarefas por Status</h3>
+          <Pie data={pieChartData} options={pieChartOptions} />
+        </div>
+
+        {/* Nova seção de Orçamento */}
+        <div className="budget-section">
+          <h3>Orçamento do Projeto</h3>
+          <div className="budget-metrics">
+            <div className="budget-item">
+              <h4>Total</h4>
+              <p className="budget-value">R$ {orcamentoResumo.orcamento_total.toLocaleString('pt-BR') || '0'}</p>
+            </div>
+            <div className="budget-item">
+              <h4>Utilizado</h4>
+              <p className="budget-value used">R$ {orcamentoResumo.orcamento_utilizado.toLocaleString('pt-BR') || '0'}</p>
+            </div>
+            <div className="budget-item">
+              <h4>Disponível</h4>
+              <p className="budget-value remaining">R$ {orcamentoResumo.orcamento_disponivel.toLocaleString('pt-BR') || '0'}</p>
+            </div>
+            <div className="budget-item">
+              <h4>Percentual Utilizado</h4>
+              <p className="budget-value percentage">{orcamentoResumo.percentual_utilizado}%</p>
+            </div>
+          </div>
+          <div className="budget-bar">
+            <div 
+              className="budget-progress" 
+              style={{ width: `${orcamentoResumo.percentual_utilizado}%` }}
+            ></div>
+          </div>
         </div>
 
         {data.tasksByStatus && (
           <div className="status-distribution">
-            <h3>Distribuição por Status</h3>
+            <h3>Detalhes por Status</h3>
             <div className="status-bars">
               {data.tasksByStatus.map((status, index) => (
                 <div key={index} className="status-bar">

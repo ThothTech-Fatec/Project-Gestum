@@ -19,7 +19,7 @@ interface StoryPointsResponse {
   total: number;
 }
 
-const getStatusProjeto = (progresso: number): string => {
+const getStatusFromProgress = (progresso: number): 'nao_iniciado' | 'em_andamento' | 'concluido' => {
   if (progresso <= 0) return 'nao_iniciado';
   if (progresso >= 100) return 'concluido';
   return 'em_andamento';
@@ -41,7 +41,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchStoryPoints = async () => {
+    const fetchProgressData = async () => {
       try {
         setLoading(true);
         const response = await axios.get<StoryPointsResponse>(
@@ -52,7 +52,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
         const calculatedProgress = total > 0 ? Math.round((concluido / total) * 100) : 0;
         setProgress(calculatedProgress);
       } catch (err) {
-        console.error('Erro ao buscar storypoints:', err);
+        console.error('Erro ao buscar progresso:', err);
         setError('Erro ao carregar progresso');
         setProgress(0);
       } finally {
@@ -60,66 +60,77 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
       }
     };
 
-    fetchStoryPoints();
+    fetchProgressData();
   }, [projetoId]);
 
   const clampedProgress = Math.min(100, Math.max(0, progress));
-  const calculatedBorderRadius = borderRadius ?? height / 2;
-  const status = getStatusProjeto(clampedProgress);
+  const status = getStatusFromProgress(clampedProgress);
 
-  if (loading) {
-    return <div>Carregando...</div>;
-  }
+  const statusTextMap = {
+    'nao_iniciado': 'Não Iniciado',
+    'em_andamento': 'Em Andamento',
+    'concluido': 'Concluído'
+  };
 
-  if (error) {
-    return <div style={{ color: 'red' }}>{error}</div>;
-  }
+  const statusColors = {
+    'nao_iniciado': '#ef4444',
+    'em_andamento': '#f59e0b',
+    'concluido': '#10b981'
+  };
 
   return (
     <div className="progress-container">
       <div 
-        className="progress-bar-container" 
+        className="progress-bar-background" 
         style={{
-          width: '100%',
-          backgroundColor,
-          borderRadius: `${calculatedBorderRadius}px`,
           height: `${height}px`,
-          overflow: 'hidden',
-          boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.1)'
+          backgroundColor,
+          borderRadius: borderRadius ? `${borderRadius}px` : `${height/2}px`,
+          overflow: 'hidden'
         }}
-        role="progressbar"
-        aria-valuenow={clampedProgress}
-        aria-valuemin={0}
-        aria-valuemax={100}
       >
-        <div 
-          className="progress-bar-fill" 
-          style={{ 
+        <div
+          className="progress-bar-fill"
+          style={{
             width: `${clampedProgress}%`,
             backgroundColor: color,
             height: '100%',
+            transition: `width ${transitionSpeed}ms ease-in-out`,
             display: 'flex',
             alignItems: 'center',
-            justifyContent: showText ? 'flex-end' : 'center',
-            paddingRight: showText ? '10px' : '0',
+            justifyContent: 'flex-end',
+            paddingRight: '8px',
             color: textColor,
-            fontWeight: 'bold',
-            fontSize: `${Math.max(10, height * 0.5)}px`,
-            transition: `width ${transitionSpeed}ms ease-in-out`,
-            borderRadius: clampedProgress === 100 ? 
-              `${calculatedBorderRadius}px` : 
-              `${calculatedBorderRadius}px 0 0 ${calculatedBorderRadius}px`
+            fontSize: `${Math.max(10, height * 0.6)}px`,
+            fontWeight: 'bold'
           }}
         >
           {showText && `${clampedProgress}%`}
         </div>
       </div>
-      
+
       {showStatus && (
-        <div className={`progress-status ${status}`}>
-          {status === 'nao_iniciado' && 'Não iniciado'}
-          {status === 'em_andamento' && 'Em andamento'}
-          {status === 'concluido' && 'Concluído'}
+        <div 
+          className="status-indicator"
+          style={{
+            marginTop: '4px',
+            color: statusColors[status],
+            fontSize: '12px',
+            fontWeight: '500',
+            display: 'flex',
+            alignItems: 'center'
+          }}
+        >
+          <div 
+            style={{
+              width: '8px',
+              height: '8px',
+              borderRadius: '50%',
+              backgroundColor: statusColors[status],
+              marginRight: '6px'
+            }} 
+          />
+          {statusTextMap[status]}
         </div>
       )}
     </div>
