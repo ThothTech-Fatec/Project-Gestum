@@ -5,6 +5,13 @@ import { useParams, useLocation } from "react-router-dom";
 import CalendarioProjeto from "../components/Calendario.tsx";
 import ProgressBar from "../components/ProgressBar.tsx"; 
 import { listarNotificacoes, Notificacao } from "../components/services/notificationService.ts";
+import axios from "axios";
+
+interface Instituicao {
+  id_empresa: number;
+  nome_empresa: string;
+  cnpj: string;
+}
 
 interface Projeto {
   id_projeto: number;
@@ -13,11 +20,34 @@ interface Projeto {
   responsavel: string;
   data_inicio_proj: string;
   data_fim_proj: string;
+  id_empresa?: number;
+  nome_empresa?: string;
+  cnpj?: string;
+  instituicoes_parceiras?: Instituicao[];
+  instituicoes_financiadoras?: Instituicao[];
 }
+
+const api = axios.create({
+  baseURL: 'http://localhost:5000',
+});
+
+const formatCNPJ = (cnpj: string) => {
+  if (!cnpj) return '';
+  const nums = cnpj.replace(/\D/g, '');
+  if (nums.length === 14) {
+    return nums.replace(
+      /^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/,
+      "$1.$2.$3/$4-$5"
+    );
+  }
+  return cnpj;
+};
 
 const ProjetoPage = () => {
   const [notificacoes, setNotificacoes] = useState<Notificacao[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingProjeto, setLoadingProjeto] = useState(true);
+  const [projetoDetalhado, setProjetoDetalhado] = useState<Projeto | null>(null);
   const { id } = useParams<{ id: string }>();
   const location = useLocation();
   const projeto = location.state?.projeto as Projeto | undefined;
@@ -39,13 +69,40 @@ const ProjetoPage = () => {
       }
     };
 
-    carregarNotificacoes();
+    const carregarDetalhesProjeto = async () => {
+      try {
+        setLoadingProjeto(true);
+        const userId = localStorage.getItem('UserID');
+        if (!userId) return;
 
-    // Atualiza notificações a cada 30 segundos
+        const response = await api.get(`/get_projectdetails`, {
+          params: {
+            id_projeto: projetoId,
+            userId: userId
+          }
+        });
+
+        setProjetoDetalhado({
+          ...response.data,
+          responsavel: response.data.user_role === 'responsavel' ? 'Você' : 'Equipe',
+          data_inicio_proj: response.data.data_inicio_proj,
+          data_fim_proj: response.data.data_fim_proj,
+          instituicoes_parceiras: response.data.instituicoes_parceiras || [],
+          instituicoes_financiadoras: response.data.instituicoes_financiadoras || []
+        });
+      } catch (error) {
+        console.error('Erro ao carregar detalhes do projeto:', error);
+      } finally {
+        setLoadingProjeto(false);
+      }
+    };
+
+    carregarNotificacoes();
+    carregarDetalhesProjeto();
+
     const interval = setInterval(carregarNotificacoes, 30000);
     return () => clearInterval(interval);
   }, [projetoId]);
-
 
   if (!projeto) {
     return (
@@ -58,29 +115,87 @@ const ProjetoPage = () => {
     );
   }
 
+  const renderInstituicoes = () => {
+    if (loadingProjeto) {
+      return <div className="loading-message">Carregando informações...</div>;
+    }
+
+    const hasInstituicoes = 
+      projetoDetalhado?.id_empresa || 
+      projetoDetalhado?.instituicoes_parceiras?.length || 
+      projetoDetalhado?.instituicoes_financiadoras?.length;
+
+    if (!hasInstituicoes) {
+      return null;
+    }
+
+    return (
+      <div className="instituicoes-card">
+        <h3 className="instituicoes-title">Instituições Relacionadas</h3>
+        
+        {projetoDetalhado?.id_empresa && (
+          <div className="instituicao-item">
+            <span className="instituicao-tag">Principal</span>
+            <p className="instituicao-nome">{projetoDetalhado.nome_empresa}</p>
+            {projetoDetalhado.cnpj && (
+              <p className="instituicao-cnpj">{formatCNPJ(projetoDetalhado.cnpj)}</p>
+            )}
+          </div>
+        )}
+
+        {projetoDetalhado?.instituicoes_parceiras?.map(inst => (
+          <div key={`parceira-${inst.id_empresa}`} className="instituicao-item">
+            <span className="instituicao-tag parceira">Parceira</span>
+            <p className="instituicao-nome">{inst.nome_empresa}</p>
+            {inst.cnpj && <p className="instituicao-cnpj">{formatCNPJ(inst.cnpj)}</p>}
+          </div>
+        ))}
+
+        {projetoDetalhado?.instituicoes_financiadoras?.map(inst => (
+          <div key={`financiadora-${inst.id_empresa}`} className="instituicao-item">
+            <span className="instituicao-tag financiadora">Financiadora</span>
+            <p className="instituicao-nome">{inst.nome_empresa}</p>
+            {inst.cnpj && <p className="instituicao-cnpj">{formatCNPJ(inst.cnpj)}</p>}
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <div className="container">
       <SuperiorMenu />
       
       <div className="project-dashboard">
-        {/* Informações do Projeto */}
+        {/* Informações Básicas do Projeto */}
         <div className="project-info">
-          <h1>Informações do Projeto</h1>
-          <h2>{projeto.nome_projeto}</h2>
-          <p>{projeto.descricao_projeto}</p>
+          <h1 className="project-name">{projeto.nome_projeto}</h1>
+          <p className="project-description">{projeto.descricao_projeto}</p>
+          
           <div className="project-meta">
-            <p><strong>Responsável:</strong> {projeto.responsavel}</p>
-            <p><strong>Início:</strong> {new Date(projeto.data_inicio_proj).toLocaleDateString()}</p>
-            {projeto.data_fim_proj && (
-              <p><strong>Prazo:</strong> {new Date(projeto.data_fim_proj).toLocaleDateString()}</p>
-            )}
+            <div className="meta-item">
+              <span className="meta-label">Responsável:</span>
+              <span className="meta-value">{projeto.responsavel}</span>
+            </div>
+            <div className="meta-item">
+              <span className="meta-label">Início:</span>
+              <span className="meta-value">
+                {new Date(projeto.data_inicio_proj).toLocaleDateString('pt-BR')}
+              </span>
+            </div>
+            <div className="meta-item">
+              <span className="meta-label">Término:</span>
+              <span className="meta-value">
+                {new Date(projeto.data_fim_proj).toLocaleDateString('pt-BR')}
+              </span>
+            </div>
           </div>
         </div>
 
         {/* Notificações */}
         <div className="notifications">
           <div className="notifications-header">
-            <h1>Notificações</h1>
+            <h2>Notificações</h2>
           </div>
           
           <div className="notifications-list">
@@ -125,6 +240,8 @@ const ProjetoPage = () => {
 
         {/* Barra de Progresso */}
         <div className="progress-container">
+          {/* Instituições */}
+          {renderInstituicoes()}
           <h2>Andamento do Projeto</h2>
           <ProgressBar projetoId={projeto.id_projeto} />
         </div>

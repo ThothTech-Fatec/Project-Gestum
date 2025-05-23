@@ -68,18 +68,17 @@
 
 /* Gráfico */
 .dashboard-chart {
-  height: 350px;
+  height: auto;
   margin: 3rem 0;
-  background: white;
-  padding: 1.5rem;
-  border-radius: 10px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  margin-left: 350px;
+  padding: 2rem;
 }
 
 .dashboard-chart h3 {
   color: #1e293b;
   margin-bottom: 1.5rem;
   font-size: 1.3rem;
+  margin-left: 80px;
 }
 
 /* Distribuição por status */
@@ -245,4 +244,66 @@
   .dashboard-container {
     padding: 10px;
   }
+}
+
+/* Adicione estas classes ao seu Dashboard.css */
+
+.budget-section {
+  margin-top: 30px;
+  padding: 20px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.budget-section h3 {
+  margin-bottom: 15px;
+  color: #343a40;
+}
+
+.budget-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.budget-item {
+  text-align: center;
+  padding: 10px;
+  background-color: white;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.budget-item h4 {
+  margin: 0 0 5px 0;
+  font-size: 14px;
+  color: #6c757d;
+}
+
+.budget-value {
+  font-size: 18px;
+  font-weight: bold;
+  margin: 0;
+  color: #343a40;
+}
+
+.budget-value.used {
+  color: #dc3545;
+}
+
+.budget-value.remaining {
+  color: #28a745;
+}
+
+.budget-value.percentage {
+  color: #007bff;
+}
+
+
+.budget-progress {
+  height: 100%;
+  background-color: #007bff;
+  transition: width 0.3s ease;
 }

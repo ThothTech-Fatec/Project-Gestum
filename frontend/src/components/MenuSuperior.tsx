@@ -32,11 +32,6 @@ const SuperiorMenu = () => {
             <IoHomeOutline className="home-icon" />
           </Link>
         </li>
-        <li>
-          <Link to="/">
-            <FaBell className="bell-icon" />
-          </Link>
-        </li>
       </ul>
 
       {isProjetoPage && (

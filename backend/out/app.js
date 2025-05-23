@@ -7,11 +7,12 @@ import multer from 'multer';
 import { getUserProjects, createProject, getProjectDetails, updateProject, deleteProject } from './routes/CrudHomeLogin.js';
 import { buscarAreasAtuacao, criarAreaAtuacao } from './routes/Area_Atuacao.js';
 import { addParticipant, getProjectParticipants, removeParticipant } from './routes/Participantes.js';
-import { atualizarAtividade, atualizarResponsavelAtividade, criarAtividade, deletarAtividade, listarAtividades, marcarComoRealizada, obterParticipantesProjeto } from './routes/atividades.js';
+import { atualizarAtividade, criarAtividade, deletarAtividade, listarAtividades, marcarComoRealizada, obterParticipantesProjeto, atualizarResponsavelAtividade, obterResumoOrcamento } from './routes/atividades.js';
 import { criarInstituicao, listarInstituicoes } from './routes/Instituicoes.js';
 import { DatasInicio_Fim } from './routes/Calendario.js';
 import { getStoryPointsByStatus } from './routes/ProgressBar.js';
 import { listarNotificacoes } from './routes/notificationController.js';
+import pool from './config/dbconnection.js';
 const app = express();
 // Configuração do CORS
 app.use(cors({
@@ -51,10 +52,73 @@ app.put('/:id/responsavel', atualizarResponsavelAtividade);
 app.get('/datasinicio_fim/:id', DatasInicio_Fim);
 app.get('/progressStoryPoints/:id', getStoryPointsByStatus);
 app.put('/atividades/:id', atualizarAtividade);
+app.get('/projetos/:projectId/orcamento/resumo', obterResumoOrcamento);
 // Rotas de notificação
 app.get('/api/notificacoes', listarNotificacoes);
 // Rota de imagem de perfil
 app.get('/profileimage/:userEmail', GetProfileImage);
+app.get('/api/dashboard/:projectId', async (req, res) => {
+    var _a, _b, _c, _d, _e;
+    try {
+        const projectId = req.params.projectId;
+        // 1. Verifica se o projeto existe
+        const [project] = await pool.query('SELECT 1 FROM projetos WHERE id_projeto = ?', [projectId]);
+        if (project.length === 0) {
+            return res.status(404).json({
+                error: `Projeto com ID ${projectId} não encontrado`
+            });
+        }
+        // 2. Busca métricas básicas
+        const [tasks] = await pool.query(`
+      SELECT
+        COUNT(*) as totalTasks,
+        SUM(CASE WHEN realizada = 1 THEN 1 ELSE 0 END) as completedTasks,
+        SUM(CASE WHEN realizada = 0 AND data_limite_atividade < NOW() THEN 1 ELSE 0 END) as overdueTasks,
+        SUM(storypoint_atividade) as totalStoryPoints,
+        SUM(CASE WHEN realizada = 1 THEN storypoint_atividade ELSE 0 END) as completedStoryPoints
+      FROM projetos_atividades
+      WHERE id_projeto = ?
+    `, [projectId]);
+        // 3. Busca progresso semanal
+        const [weeklyProgress] = await pool.query(`
+      SELECT
+        DATE(fim_atividade) as date,
+        COUNT(*) as completed
+      FROM projetos_atividades
+      WHERE realizada = 1 AND fim_atividade >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+        AND id_projeto = ?
+      GROUP BY DATE(fim_atividade)
+      ORDER BY DATE(fim_atividade)
+    `, [projectId]);
+        // 4. Busca participantes
+        const [participants] = await pool.query(`
+      SELECT 
+        u.id_usuario, 
+        u.email_usuario, 
+        u.nome_usuario,
+        pp.tipo
+      FROM projetos_participantes pp
+      JOIN usuarios u ON pp.id_usuario = u.id_usuario
+      WHERE pp.id_projeto = ?
+    `, [projectId]);
+        res.json({
+            totalTasks: ((_a = tasks[0]) === null || _a === void 0 ? void 0 : _a.totalTasks) || 0,
+            completedTasks: ((_b = tasks[0]) === null || _b === void 0 ? void 0 : _b.completedTasks) || 0,
+            overdueTasks: ((_c = tasks[0]) === null || _c === void 0 ? void 0 : _c.overdueTasks) || 0,
+            totalStoryPoints: ((_d = tasks[0]) === null || _d === void 0 ? void 0 : _d.totalStoryPoints) || 0,
+            completedStoryPoints: ((_e = tasks[0]) === null || _e === void 0 ? void 0 : _e.completedStoryPoints) || 0,
+            weeklyProgress: weeklyProgress || [],
+            participants: participants || []
+        });
+    }
+    catch (error) {
+        console.error('Erro no dashboard:', error);
+        res.status(500).json({
+            error: 'Erro ao carregar dados do dashboard',
+            details: error instanceof Error ? error.message : 'Erro desconhecido'
+        });
+    }
+});
 // Middleware de erro (adicione no final, antes do listen)
 app.use((err, req, res, next) => {
     console.error(err.stack);

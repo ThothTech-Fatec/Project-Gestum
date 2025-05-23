@@ -1,12 +1,33 @@
+/* ============ VARIÁVEIS E ESTILOS GLOBAIS ============ */
+:root {
+  --primary-color: #3b82f6;
+  --primary-light: #f0f8ff;
+  --primary-dark: #1e40af;
+  --success-color: #10b981;
+  --success-dark: #047857;
+  --warning-color: #f59e0b;
+  --text-primary: #1e293b;
+  --text-secondary: #64748b;
+  --bg-light: #f8fafc;
+  --bg-white: #ffffff;
+  --border-light: #e0f2fe;
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --transition: all 0.3s ease;
+}
+
 .container {
   font-family: 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
   min-height: 100vh;
-  background-color: #f8fafc;
+  background-color: var(--bg-light);
   padding: 20px;
   position: relative;
 }
 
-/* Layout Grid Principal */
+/* ============ LAYOUT PRINCIPAL ============ */
 .project-dashboard {
   display: grid;
   grid-template-columns: 1fr 0.8fr;
@@ -17,43 +38,40 @@
   padding: 0 20px;
 }
 
-/* Card Base */
+/* ============ COMPONENTES COMUNS ============ */
 .card {
-  background-color: #ffffff;
-  border-radius: 16px;
+  background-color: var(--bg-white);
+  border-radius: var(--radius-md);
   padding: 28px;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1),
-              0 8px 10px -6px rgba(0, 0, 0, 0.05);
-  transition: all 0.3s ease;
+  box-shadow: var(--shadow-lg);
+  transition: var(--transition);
   border: 1px solid rgba(241, 245, 249, 0.8);
 }
 
 .card:hover {
   transform: translateY(-3px);
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15),
-              0 10px 10px -5px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.08);
 }
 
-/* Informações do Projeto */
+/* ============ SEÇÃO DE INFORMAÇÕES DO PROJETO ============ */
 .project-info {
   composes: card;
   grid-column: 1 / 2;
   grid-row: 1 / 2;
-  background-color: #f3f9ff;
-  border-radius: 9px;
+  background-color: var(--primary-light);
+  border-radius: var(--radius-sm);
   padding: 20px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 
-  0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow-md);
 }
 
 .project-info h1 {
-  color: #3b82f6;
+  color: var(--primary-color);
   font-size: 1.8rem;
   margin-bottom: 20px;
   font-weight: 600;
 }
 
-/* Notificações */
+/* ============ SEÇÃO DE NOTIFICAÇÕES ============ */
 .notifications {
   composes: card;
   grid-column: 2 / 3;
@@ -63,7 +81,7 @@
 }
 
 .notifications h1 {
-  color: #3b82f6;
+  color: var(--primary-color);
   font-size: 1.5rem;
   margin-bottom: 20px;
   font-weight: 600;
@@ -74,12 +92,12 @@
 }
 
 .notification-item {
-  background: #f3f9ff;
-  border-left: 4px solid #3b82f6;
+  background: var(--primary-light);
+  border-left: 4px solid var(--primary-color);
   padding: 14px 16px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   margin-bottom: 12px;
-  transition: all 0.2s ease;
+  transition: var(--transition);
 }
 
 .notification-item:hover {
@@ -87,18 +105,17 @@
   background: #f1f5f9;
 }
 
-/* Calendário */
+/* ============ CALENDÁRIO ============ */
 .calendar-container {
   composes: card;
   grid-column: 1 / 2;
   grid-row: 2 / 3;
   padding-bottom: 20px;
-  background: #f3f9ff;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 
-  0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  background: var(--primary-light);
+  box-shadow: var(--shadow-md);
 }
 
-/* Progresso */
+/* ============ BARRA DE PROGRESSO ============ */
 .progress-container {
   composes: card;
   width: 100%;
@@ -108,19 +125,87 @@
 }
 
 .progress-container h2 {
-  color: #10b981;
+  color: var(--success-color);
   font-size: 1.3rem;
   margin-bottom: 15px;
 }
 
 .progress-percentage {
-  color: #047857;
+  color: var(--success-dark);
   font-size: 2rem;
   font-weight: 700;
   margin: 10px 0;
 }
 
-/* Responsividade */
+/* ============ SEÇÃO DE INSTITUIÇÕES ============ */
+.instituicoes-card {
+  composes: card;
+  padding: 16px;
+  margin: 20px 0;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
+  border: 1px solid var(--border-light);
+}
+
+.instituicoes-title {
+  color: var(--primary-dark);
+  font-size: 1.2rem;
+  margin-top: 0;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.instituicao-item {
+  margin-bottom: 12px;
+  padding: 12px;
+  background-color: var(--primary-light);
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--primary-color);
+}
+
+.instituicao-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: white;
+  background-color: var(--primary-color);
+  margin-right: 8px;
+}
+
+.instituicao-tag.parceira {
+  background-color: var(--success-color);
+}
+
+.instituicao-tag.financiadora {
+  background-color: var(--warning-color);
+}
+
+.instituicao-nome {
+  margin: 6px 0;
+  color: var(--primary-dark);
+  font-weight: 500;
+}
+
+.instituicao-cnpj {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  background-color: #f8fafc;
+  padding: 4px 8px;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+.loading-message {
+  text-align: center;
+  padding: 12px;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+/* ============ RESPONSIVIDADE ============ */
 @media (max-width: 1200px) {
   .project-dashboard {
     grid-template-columns: 1fr;
@@ -143,6 +228,10 @@
     width: 100%;
     margin-top: 20px;
     grid-row: 4 / 5;
+  }
+  
+  .instituicoes-card {
+    grid-row: 5 / 6;
   }
 }
 

@@ -23,6 +23,8 @@ type Projeto = {
   nome_empresa?: string;
   cnpj?: string;
   status?: string;
+  instituicoes_parceiras?: Instituicao[];
+  instituicoes_financiadoras?: Instituicao[];
 };
 
 type AreaAtuacao = {
@@ -54,7 +56,7 @@ const formatCNPJ = (cnpj: string) => {
   return cnpj;
 };
 
-const getStatusProjeto = (progresso: number = 0): StatusProjeto => {
+const getStatusProjeto = (progresso: number = 0): Exclude<StatusProjeto, 'todos'> => {
   if (progresso <= 0) return 'nao_iniciado';
   if (progresso >= 100) return 'concluido';
   return 'em_andamento';
@@ -85,6 +87,8 @@ const Home = () => {
 
   const [instituicoes, setInstituicoes] = useState<Instituicao[]>([]);
   const [selectedInstituicao, setSelectedInstituicao] = useState<number | null>(null);
+  const [selectedParceiras, setSelectedParceiras] = useState<number[]>([]);
+  const [selectedFinanciadoras, setSelectedFinanciadoras] = useState<number[]>([]);
   const [modalInstituicaoAberto, setModalInstituicaoAberto] = useState(false);
 
   const [filtroArea, setFiltroArea] = useState<number | null>(null);
@@ -93,6 +97,9 @@ const Home = () => {
   const [filtroStatus, setFiltroStatus] = useState<StatusProjeto>('todos');
   const [isOpen, setIsOpen] = useState(false);
   const [valorOrcamento, setValorOrcamento] = useState<string>("");
+
+  const [isParceirasExpanded, setIsParceirasExpanded] = useState(false);
+  const [isFinanciadorasExpanded, setIsFinanciadorasExpanded] = useState(false);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -192,6 +199,10 @@ const Home = () => {
           a.id === Number(projeto.area_atuacao_id) || 
           a.nome.toLowerCase() === projeto.nome_area?.toLowerCase()
         );
+
+        // Calcula o status baseado no progresso
+        const progresso = projeto.progresso_projeto || 0;
+        const status = getStatusProjeto(progresso);
   
         return {
           ...projeto,
@@ -200,7 +211,10 @@ const Home = () => {
           data_inicio_formatada: formatarDataParaExibicao(projeto.data_inicio_proj),
           data_fim_formatada: formatarDataParaExibicao(projeto.data_fim_proj),
           user_role: projeto.user_role || 'equipe',
-          progresso_projeto: projeto.progresso_projeto || 0
+          progresso_projeto: progresso,
+          status: status, // Adiciona o status calculado
+          instituicoes_parceiras: projeto.instituicoes_parceiras || [],
+          instituicoes_financiadoras: projeto.instituicoes_financiadoras || []
         };
       });
   
@@ -213,35 +227,41 @@ const Home = () => {
   }, [formatarDataParaExibicao, areasAtuacao]);
 
   const filtrarProjetos = useCallback(() => {
-    return projetos
-      .map(projeto => ({
-        ...projeto,
-        status: getStatusProjeto(projeto.progresso_projeto)
-      }))
-      .filter(projeto => {
-        if (filtroStatus !== 'todos' && projeto.status !== filtroStatus) {
-          return false;
-        }
-
-        if (filtroArea !== null && Number(projeto.area_atuacao_id) !== Number(filtroArea)) {
-          return false;
-        }
-    
-        if (filtroInstituicao !== null && projeto.id_empresa !== filtroInstituicao) {
-          return false;
-        }
-    
-        if (filtroResponsavel) {
-          if (filtroResponsavel === 'meus' && projeto.user_role !== 'responsavel') return false;
-          if (filtroResponsavel === 'equipe' && projeto.user_role === 'responsavel') return false;
-        }
+    return projetos.filter(projeto => {
+      // Filtro por status
+      if (filtroStatus !== 'todos') {
+        const progresso = projeto.progresso_projeto || 0;
+        const statusProjeto = getStatusProjeto(progresso);
         
-        return true;
-      })
-      .sort((a, b) => (a.progresso_projeto || 0) - (b.progresso_projeto || 0));
+        if (statusProjeto !== filtroStatus) {
+          return false;
+        }
+      }
+
+      // Outros filtros...
+      if (filtroArea !== null && Number(projeto.area_atuacao_id) !== Number(filtroArea)) {
+        return false;
+      }
+
+      if (filtroInstituicao !== null && projeto.id_empresa !== filtroInstituicao) {
+        return false;
+      }
+
+      if (filtroResponsavel) {
+        if (filtroResponsavel === 'meus' && projeto.user_role !== 'responsavel') return false;
+        if (filtroResponsavel === 'equipe' && projeto.user_role === 'responsavel') return false;
+      }
+      
+      return true;
+    });
   }, [projetos, filtroStatus, filtroArea, filtroInstituicao, filtroResponsavel]);
 
   const projetosFiltrados = filtrarProjetos();
+  console.log('Projetos filtrados:', projetosFiltrados.map(p => ({
+    nome: p.nome_projeto,
+    progresso: p.progresso_projeto,
+    status: getStatusProjeto(p.progresso_projeto || 0)
+  })));
 
   useEffect(() => {
     const loadUserId = () => {
@@ -286,6 +306,10 @@ const Home = () => {
               a.nome.toLowerCase() === projeto.nome_area?.toLowerCase()
             );
 
+            // Calcula o status baseado no progresso
+            const progresso = projeto.progresso_projeto || 0;
+            const status = getStatusProjeto(progresso);
+
             return {
               ...projeto,
               area_atuacao_id: areaCorrespondente ? areaCorrespondente.id : null,
@@ -293,7 +317,10 @@ const Home = () => {
               data_inicio_formatada: formatarDataParaExibicao(projeto.data_inicio_proj),
               data_fim_formatada: formatarDataParaExibicao(projeto.data_fim_proj),
               user_role: projeto.user_role || 'equipe',
-              progresso_projeto: projeto.progresso_projeto || 0
+              progresso_projeto: progresso,
+              status: status, // Adiciona o status calculado
+              instituicoes_parceiras: projeto.instituicoes_parceiras || [],
+              instituicoes_financiadoras: projeto.instituicoes_financiadoras || []
             };
           });
 
@@ -321,6 +348,8 @@ const Home = () => {
       data_fim_proj: formatarDataParaInput(projeto.data_fim_proj)
     });
     setSelectedInstituicao(projeto.id_empresa || null);
+    setSelectedParceiras(projeto.instituicoes_parceiras?.map(i => i.id_empresa) || []);
+    setSelectedFinanciadoras(projeto.instituicoes_financiadoras?.map(i => i.id_empresa) || []);
     setModalAtualizar(true);
   };
 
@@ -340,10 +369,15 @@ const Home = () => {
         data_fim_proj: projetoSelecionado.data_fim_proj,
         area_atuacao_id: projetoSelecionado.area_atuacao_id,
         id_empresa: selectedInstituicao,
-        userId
+        userId,
+        instituicoes_parceiras: selectedParceiras,
+        instituicoes_financiadoras: selectedFinanciadoras,
+        valor: valorOrcamento ? parseFloat(valorOrcamento.replace(',', '.')) : undefined
       });
 
       const instituicaoAtual = instituicoes.find(i => i.id_empresa === selectedInstituicao);
+      const parceirasAtuais = instituicoes.filter(i => selectedParceiras.includes(i.id_empresa));
+      const financiadorasAtuais = instituicoes.filter(i => selectedFinanciadoras.includes(i.id_empresa));
   
       const projetosAtualizados = projetos.map(proj => 
         proj.id_projeto === projetoSelecionado.id_projeto ? {
@@ -354,7 +388,9 @@ const Home = () => {
                     projetoSelecionado.nome_area,
           nome_empresa: instituicaoAtual?.nome_empresa || projetoSelecionado.nome_empresa,
           cnpj: instituicaoAtual?.cnpj || projetoSelecionado.cnpj || '',
-          progresso_projeto: projetoSelecionado.progresso_projeto || 0
+          progresso_projeto: projetoSelecionado.progresso_projeto || 0,
+          instituicoes_parceiras: parceirasAtuais,
+          instituicoes_financiadoras: financiadorasAtuais
         } : proj
       );
   
@@ -400,6 +436,8 @@ const Home = () => {
     setModalAberto(true);
     setSelectedArea(null);
     setSelectedInstituicao(null);
+    setSelectedParceiras([]);
+    setSelectedFinanciadoras([]);
   };
 
   const fecharModal = () => {
@@ -414,6 +452,9 @@ const Home = () => {
     setNovaArea("");
     setSelectedArea(null);
     setSelectedInstituicao(null);
+    setSelectedParceiras([]);
+    setSelectedFinanciadoras([]);
+    setValorOrcamento("");
   };
 
   const criarNovaArea = async () => {
@@ -435,8 +476,36 @@ const Home = () => {
     }
   };
 
+  const toggleInstituicaoParceira = (id: number) => {
+    setSelectedParceiras(prev => {
+      if (prev.includes(id)) {
+        return prev.filter(i => i !== id);
+      } else {
+        if (prev.length >= 5) {
+          alert('Limite máximo de 5 instituições parceiras atingido');
+          return prev;
+        }
+        return [...prev, id];
+      }
+    });
+  };
+
+  const toggleInstituicaoFinanciadora = (id: number) => {
+    setSelectedFinanciadoras(prev => {
+      if (prev.includes(id)) {
+        return prev.filter(i => i !== id);
+      } else {
+        if (prev.length >= 3) {
+          alert('Limite máximo de 3 instituições financiadoras atingido');
+          return prev;
+        }
+        return [...prev, id];
+      }
+    });
+  };
+
   const salvarProjeto = async () => {
-    if (nomeProjeto.trim() === "" || descricaoProjeto.trim() === "" || datafimProjeto.trim() === "" || valorOrcamento.trim()==="") {
+    if (nomeProjeto.trim() === "" || descricaoProjeto.trim() === "" || datafimProjeto.trim() === "" || valorOrcamento.trim() === "") {
       alert("Preencha todos os campos!");
       return;
     }
@@ -467,6 +536,8 @@ const Home = () => {
         userId: userId,
         area_atuacao_id: selectedArea,
         id_empresa: selectedInstituicao,
+        instituicoes_parceiras: selectedParceiras,
+        instituicoes_financiadoras: selectedFinanciadoras,
         valor: valorNumerico
       });
   
@@ -513,7 +584,9 @@ const Home = () => {
         data_fim_formatada: formatarDataParaExibicao(response.data.data_fim_proj), 
         nome_empresa: response.data.nome_empresa || 'Não definida',
         cnpj: instituicaoCompleta?.cnpj || response.data.cnpj || '',
-        progresso_projeto: response.data.progresso_projeto || 0
+        progresso_projeto: response.data.progresso_projeto || 0,
+        instituicoes_parceiras: response.data.instituicoes_parceiras || [],
+        instituicoes_financiadoras: response.data.instituicoes_financiadoras || []
       });
       
       setModalAbertoProj(true);
@@ -537,7 +610,7 @@ const Home = () => {
 
   const renderInstituicaoSelect = () => (
     <div className="instituicao-select-container">
-      <label className="input-label">Instituição</label>
+      <label className="input-label">Instituição Principal</label>
       <select
         value={selectedInstituicao || ""}
         onChange={(e) => {
@@ -554,19 +627,6 @@ const Home = () => {
         ))}
       </select>
 
-      {selectedInstituicao && (
-        <div className="instituicao-selecionada-card">
-          <div className="instituicao-selecionada-header">
-            <span className="instituicao-selecionada-icon">🏛️</span>
-            <div className="instituicao-selecionada-info">
-              <div className="instituicao-selecionada-nome">
-                {instituicoes.find(i => i.id_empresa === selectedInstituicao)?.nome_empresa}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       <button
         type="button"
         className="botao-nova-instituicao"
@@ -574,6 +634,86 @@ const Home = () => {
       >
         <span>+</span> Cadastrar nova instituição
       </button>
+    </div>
+  );
+
+  const renderInstituicoesParceiras = () => (
+    <div className="instituicoes-container">
+      <div className="instituicoes-header">
+        <label className="input-label">Instituições Parceiras (máx. 5)</label>
+        <button 
+          className="botao-expandir"
+          onClick={() => setIsParceirasExpanded(!isParceirasExpanded)}
+        >
+          {isParceirasExpanded ? '▲' : '▼'}
+        </button>
+      </div>
+      {isParceirasExpanded && (
+        <div className="instituicoes-list">
+          {instituicoes.map(inst => (
+            <div key={`parceira-${inst.id_empresa}`} className="instituicao-checkbox">
+              <input
+                type="checkbox"
+                id={`parceira-${inst.id_empresa}`}
+                checked={selectedParceiras.includes(inst.id_empresa)}
+                onChange={() => toggleInstituicaoParceira(inst.id_empresa)}
+                disabled={!selectedParceiras.includes(inst.id_empresa) && selectedParceiras.length >= 5}
+              />
+              <label htmlFor={`parceira-${inst.id_empresa}`}>
+                {inst.nome_empresa} ({formatCNPJ(inst.cnpj)})
+              </label>
+            </div>
+          ))}
+        </div>
+      )}
+      {selectedParceiras.length > 0 && (
+        <div className="instituicoes-selecionadas">
+          <strong>Selecionadas:</strong> {selectedParceiras.map(id => {
+            const inst = instituicoes.find(i => i.id_empresa === id);
+            return inst ? `${inst.nome_empresa.substring(0, 15)}...` : '';
+          }).join(', ')}
+        </div>
+      )}
+    </div>
+  );
+
+  const renderInstituicoesFinanciadoras = () => (
+    <div className="instituicoes-container">
+      <div className="instituicoes-header">
+        <label className="input-label">Instituições Financiadoras (máx. 3)</label>
+        <button 
+          className="botao-expandir"
+          onClick={() => setIsFinanciadorasExpanded(!isFinanciadorasExpanded)}
+        >
+          {isFinanciadorasExpanded ? '▲' : '▼'}
+        </button>
+      </div>
+      {isFinanciadorasExpanded && (
+        <div className="instituicoes-list">
+          {instituicoes.map(inst => (
+            <div key={`financiadora-${inst.id_empresa}`} className="instituicao-checkbox">
+              <input
+                type="checkbox"
+                id={`financiadora-${inst.id_empresa}`}
+                checked={selectedFinanciadoras.includes(inst.id_empresa)}
+                onChange={() => toggleInstituicaoFinanciadora(inst.id_empresa)}
+                disabled={!selectedFinanciadoras.includes(inst.id_empresa) && selectedFinanciadoras.length >= 3}
+              />
+              <label htmlFor={`financiadora-${inst.id_empresa}`}>
+                {inst.nome_empresa} ({formatCNPJ(inst.cnpj)})
+              </label>
+            </div>
+          ))}
+        </div>
+      )}
+      {selectedFinanciadoras.length > 0 && (
+        <div className="instituicoes-selecionadas">
+          <strong>Selecionadas:</strong> {selectedFinanciadoras.map(id => {
+            const inst = instituicoes.find(i => i.id_empresa === id);
+            return inst ? `${inst.nome_empresa.substring(0, 15)}...` : '';
+          }).join(', ')}
+        </div>
+      )}
     </div>
   );
 
@@ -655,6 +795,32 @@ const Home = () => {
             </div>
           )}
         </div>
+
+        {projetoSelecionado.instituicoes_parceiras && projetoSelecionado.instituicoes_parceiras.length > 0 && (
+          <div className="instituicoes-lista">
+            <h3>Instituições Parceiras</h3>
+            <ul>
+              {projetoSelecionado.instituicoes_parceiras.map(inst => (
+                <li key={`detalhe-parceira-${inst.id_empresa}`}>
+                  {inst.nome_empresa} ({formatCNPJ(inst.cnpj)})
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {projetoSelecionado.instituicoes_financiadoras && projetoSelecionado.instituicoes_financiadoras.length > 0 && (
+          <div className="instituicoes-lista">
+            <h3>Instituições Financiadoras</h3>
+            <ul>
+              {projetoSelecionado.instituicoes_financiadoras.map(inst => (
+                <li key={`detalhe-financiadora-${inst.id_empresa}`}>
+                  {inst.nome_empresa} ({formatCNPJ(inst.cnpj)})
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
         
         <p><strong>Descrição:</strong> {projetoSelecionado.descricao_projeto}</p>
         <p><strong>Responsável:</strong> {projetoSelecionado.responsavel}</p>
@@ -860,51 +1026,7 @@ const Home = () => {
   
       {modalAbertoProj && projetoSelecionado && (
         <div className="modal-overlay">
-          <div className="modal-proj">
-            <button className="botao-fechar-proj" onClick={fecharModal}>
-              &times;
-            </button>
-            <h2>Detalhes do {projetoSelecionado?.nome_projeto}</h2>  
-            <p><strong>Área:</strong> {projetoSelecionado?.nome_area}</p>
-            
-            <div className="instituicao-detalhes">
-              <h3>Instituição Responsável</h3>
-              <p><strong>Nome:</strong> {projetoSelecionado?.nome_empresa}</p>
-              {projetoSelecionado?.cnpj && (
-                <div className="cnpj-container">
-                  <span className="cnpj-label">CNPJ:</span>
-                  <p className="cnpj-value">
-                    {formatCNPJ(projetoSelecionado.cnpj)}
-                  </p>
-                </div>
-              )}
-            </div>
-            
-            <p><strong>Descrição:</strong> {projetoSelecionado?.descricao_projeto}</p>
-            <p><strong>Responsável:</strong> {projetoSelecionado?.responsavel}</p>
-            <p><strong>Data de Início:</strong> {projetoSelecionado?.data_inicio_formatada}</p>
-            <p><strong>Data de Entrega:</strong> {projetoSelecionado?.data_fim_formatada}</p>
-            
-            <div className="progress-container">
-              <ProgressBar 
-                projetoId={projetoSelecionado?.id_projeto || 0} 
-                showStatus={true}
-              />
-            </div>
-            
-            {projetoSelecionado && usuarioPodeEditar(projetoSelecionado) ? (
-              <div className="botoes">
-                <button className="excluir-proj-home" onClick={() => excluirProjeto(projetoSelecionado.id_projeto)}>
-                  Excluir
-                </button>
-                <button className="atualizar-proj-home" onClick={() => abrirModalAtualizar(projetoSelecionado)}>
-                  Atualizar
-                </button>
-              </div>
-            ) : (
-              <p className="info-permissao">Você tem permissão apenas para visualizar este projeto.</p>
-            )}
-          </div>
+          {renderDetalhesProjeto()}
         </div>
       )}
   
@@ -1015,6 +1137,8 @@ const Home = () => {
             </div>
             
             {renderInstituicaoSelect()}
+            {renderInstituicoesParceiras()}
+            {renderInstituicoesFinanciadoras()}
             
             <div className="container-data">
               <div className="input-container">
@@ -1061,122 +1185,131 @@ const Home = () => {
   
       {modalAberto && (
         <div className="modal-overlay">
-          <div className="modal">
+          <div className="modal modal-horizontal">
             <button className="botao-fechar-proj" onClick={fecharModal}>
               &times;
             </button>
             <h2>Criar Novo Projeto</h2>
             
-            <div className="input-container">
-              <label className="input-label">Nome do Projeto</label>
-              <input
-                type="text"
-                value={nomeProjeto}
-                onChange={(e) => setNomeProjeto(e.target.value)}
-                className="input-field"
-                placeholder="Digite o nome do projeto"
-              />
-            </div>
-            
-            <div className="input-container">
-              <label className="input-label">Descrição</label>
-              <textarea
-                value={descricaoProjeto}  
-                onChange={(e) => setDescricaoProjeto(e.target.value)}
-                className="input-field"
-                placeholder="Descreva o projeto"
-                rows={3}
-              />
-            </div>
-
-            <div className="input-container">
-              <label className="input-label">Orçamento (R$)</label>
-              <input
-                type="text"
-                value={valorOrcamento}
-                onChange={(e) => {
-                  const value = e.target.value.replace(/[^0-9,.]/g, '');
-                  setValorOrcamento(value);
-                }}
-                className="input-field"
-                placeholder="Digite o valor do orçamento"
-              />
-            </div>
-            
-            <div className="input-container">
-              <label className="input-label">Área de Atuação</label>
-              {!showNewAreaInput ? (
-                <div className="area-selection">
-                  <select
-                    value={selectedArea || ""}
-                    onChange={(e) => setSelectedArea(Number(e.target.value))}
-                    className="input-field"
-                  >
-                    <option value="">Selecione uma área</option>
-                    {areasAtuacao.map((area) => (
-                      <option key={area.id} value={area.id}>
-                        {area.nome}
-                      </option>
-                    ))}
-                  </select>
-                  <button 
-                    type="button"
-                    className="botao-nova-area"
-                    onClick={() => setShowNewAreaInput(true)}
-                  >
-                    + Nova Área
-                  </button>
-                </div>
-              ) : (
-                <div className="new-area-container">
+            <div className="modal-columns">
+              <div className="modal-left">
+                <div className="input-container">
+                  <label className="input-label">Nome do Projeto</label>
                   <input
                     type="text"
-                    value={novaArea}
-                    onChange={(e) => setNovaArea(e.target.value)}
+                    value={nomeProjeto}
+                    onChange={(e) => setNomeProjeto(e.target.value)}
                     className="input-field"
-                    placeholder="Digite o nome da nova área"
+                    placeholder="Digite o nome do projeto"
                   />
-                  <div className="area-buttons">
-                    <button
-                      type="button"
-                      className="botao-cancelar-area"
-                      onClick={() => setShowNewAreaInput(false)}
-                    >
-                      Cancelar
-                    </button>
-                    <button
-                      type="button"
-                      className="botao-salvar-area"
-                      onClick={criarNovaArea}
-                    >
-                      Salvar Área
-                    </button>
+                </div>
+                
+                <div className="input-container">
+                  <label className="input-label">Descrição</label>
+                  <textarea
+                    value={descricaoProjeto}  
+                    onChange={(e) => setDescricaoProjeto(e.target.value)}
+                    className="input-field"
+                    placeholder="Descreva o projeto"
+                    rows={5}
+                  />
+                </div>
+
+                <div className="input-container">
+                  <label className="input-label">Orçamento (R$)</label>
+                  <input
+                    type="text"
+                    value={valorOrcamento}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/[^0-9,.]/g, '');
+                      setValorOrcamento(value);
+                    }}
+                    className="input-field"
+                    placeholder="Digite o valor do orçamento"
+                  />
+                </div>
+              </div>
+              
+              <div className="modal-right">
+                <div className="input-container">
+                  <label className="input-label">Área de Atuação</label>
+                  {!showNewAreaInput ? (
+                    <div className="area-selection">
+                      <select
+                        value={selectedArea || ""}
+                        onChange={(e) => setSelectedArea(Number(e.target.value))}
+                        className="input-field"
+                      >
+                        <option value="">Selecione uma área</option>
+                        {areasAtuacao.map((area) => (
+                          <option key={area.id} value={area.id}>
+                            {area.nome}
+                          </option>
+                        ))}
+                      </select>
+                      <button 
+                        type="button"
+                        className="botao-nova-area"
+                        onClick={() => setShowNewAreaInput(true)}
+                      >
+                        + Nova Área
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="new-area-container">
+                      <input
+                        type="text"
+                        value={novaArea}
+                        onChange={(e) => setNovaArea(e.target.value)}
+                        className="input-field"
+                        placeholder="Digite o nome da nova área"
+                      />
+                      <div className="area-buttons">
+                        <button
+                          type="button"
+                          className="botao-cancelar-area"
+                          onClick={() => setShowNewAreaInput(false)}
+                        >
+                          Cancelar
+                        </button>
+                        <button
+                          type="button"
+                          className="botao-salvar-area"
+                          onClick={criarNovaArea}
+                        >
+                          Salvar Área
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                
+                {renderInstituicaoSelect()}
+                
+                <div className="container-data">
+                  <div className="input-container">
+                    <label className="input-label">Data de Início</label>
+                    <input
+                      type="text" 
+                      value={formatarDataParaExibicao(currentDate)}
+                      className="input-field"
+                      disabled
+                    />
+                  </div>
+                  <div className="input-container">
+                    <label className="input-label">Data de Entrega</label>
+                    <input
+                      type="date" 
+                      value={datafimProjeto}
+                      onChange={(e) => setDatafimProjeto(e.target.value)}
+                      className="input-field"
+                      min={currentDate} 
+                    />
                   </div>
                 </div>
-              )}
-            </div>
-            
-            {renderInstituicaoSelect()}
-            
-            <div className="container-data">
-              <div className="input-container">
-                <label className="input-label">Data de Início</label>
-                <input
-                  type="text" 
-                  value={formatarDataParaExibicao(currentDate)}
-                  className="input-field"
-                  disabled
-                />
-              </div>
-              <div className="input-container">
-                <label className="input-label">Data de Entrega</label>
-                <input
-                  type="date" 
-                  value={datafimProjeto}
-                  onChange={(e) => setDatafimProjeto(e.target.value)}
-                  className="input-field"
-                  min={currentDate} 
-                />
+                
+                {renderInstituicoesParceiras()}
+                {renderInstituicoesFinanciadoras()}
               </div>
             </div>
             
@@ -1194,8 +1327,8 @@ const Home = () => {
                 Criar Projeto
               </button>
             </div>
-          </div>
-        </div> 
+          </div> 
+        </div>
       )}
     </div>
   );
