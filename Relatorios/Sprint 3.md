@@ -2,9 +2,9 @@
 
 # 📄 Relatório Sprint - 03 (25/05/2025)
 
-Nesta sprint, foram desenvolvidas funcionalidades para melhorar o acompanhamento dos projetos. Agora é possível visualizar projetos por status, acompanhar o andamento das atividades em linha do tempo, acessar um dashboard com visão geral e gerar relatórios por área.
-Essas entregas trouxeram mais clareza, organização e controle para os coordenadores, facilitando o monitoramento do progresso e o cumprimento dos prazos.
-A sprint foi concluída com sucesso, atendendo os objetivos propostos e fortalecendo a gestão dos projetos.
+Aprimorar a gestão de projetos com foco em comunicação interna, personalização de visualizações e automação de relatórios.
+
+
 
 <h2 aling="center">📜 Backlog Sprint 3 </h2>
 <span id="backlog1">
