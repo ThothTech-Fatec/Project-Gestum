@@ -88,4 +88,4 @@ https://github.com/user-attachments/assets/7b5bd622-2a88-49f6-9932-8527c90b77d3
 
 
 ## 📈Burndown
-![Image](https://github.com/user-attachments/assets/8a786a0c-3850-4310-a0e0-6d88055f8eae)
+![Image](https://github.com/user-attachments/assets/e5a2fd2f-09e0-417b-99d9-84e7bc42e2ea)
