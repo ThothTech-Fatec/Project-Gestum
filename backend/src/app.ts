@@ -14,7 +14,7 @@ import cors from 'cors';
     deleteProject
   } from './routes/CrudHomeLogin.js'; 
   import { buscarAreasAtuacao, criarAreaAtuacao } from './routes/Area_Atuacao.js';
-  import { addParticipant, getProjectParticipants, removeParticipant } from './routes/Participantes.js';
+  import { addParticipant, getProjectParticipants, removeParticipant, searchUsers } from './routes/Participantes.js';
   import { atualizarAtividade, criarAtividade, deletarAtividade, listarAtividades, marcarComoRealizada, obterParticipantesProjeto, atualizarResponsavelAtividade, obterResumoOrcamento } from './routes/atividades.js';
   import { criarInstituicao, listarInstituicoes } from './routes/Instituicoes.js';
   import { DatasInicio_Fim } from './routes/Calendario.js';
@@ -66,6 +66,7 @@ interface WeeklyProgress extends RowDataPacket {
   app.put('/update_project/:id', updateProject); 
   app.delete('/delete_project/:id', deleteProject); 
   app.post('/add_participant/:id', addParticipant); 
+  app.get('/search_users', searchUsers);
   app.delete('/remove_participant/:id', removeParticipant);
   app.post('/criar_area', criarAreaAtuacao);
   app.get('/areas', buscarAreasAtuacao);

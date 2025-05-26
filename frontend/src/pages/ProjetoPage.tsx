@@ -115,68 +115,21 @@ const ProjetoPage = () => {
     );
   }
 
-  const renderInstituicoes = () => {
-    if (loadingProjeto) {
-      return <div className="loading-message">Carregando informações...</div>;
-    }
-
-    const hasInstituicoes = 
-      projetoDetalhado?.id_empresa || 
-      projetoDetalhado?.instituicoes_parceiras?.length || 
-      projetoDetalhado?.instituicoes_financiadoras?.length;
-
-    if (!hasInstituicoes) {
-      return null;
-    }
-
-    return (
-      <div className="instituicoes-card">
-        <h3 className="instituicoes-title">Instituições Relacionadas</h3>
-        
-        {projetoDetalhado?.id_empresa && (
-          <div className="instituicao-item">
-            <span className="instituicao-tag">Principal</span>
-            <p className="instituicao-nome">{projetoDetalhado.nome_empresa}</p>
-            {projetoDetalhado.cnpj && (
-              <p className="instituicao-cnpj">{formatCNPJ(projetoDetalhado.cnpj)}</p>
-            )}
-          </div>
-        )}
-
-        {projetoDetalhado?.instituicoes_parceiras?.map(inst => (
-          <div key={`parceira-${inst.id_empresa}`} className="instituicao-item">
-            <span className="instituicao-tag parceira">Parceira</span>
-            <p className="instituicao-nome">{inst.nome_empresa}</p>
-            {inst.cnpj && <p className="instituicao-cnpj">{formatCNPJ(inst.cnpj)}</p>}
-          </div>
-        ))}
-
-        {projetoDetalhado?.instituicoes_financiadoras?.map(inst => (
-          <div key={`financiadora-${inst.id_empresa}`} className="instituicao-item">
-            <span className="instituicao-tag financiadora">Financiadora</span>
-            <p className="instituicao-nome">{inst.nome_empresa}</p>
-            {inst.cnpj && <p className="instituicao-cnpj">{formatCNPJ(inst.cnpj)}</p>}
-          </div>
-        ))}
-      </div>
-    );
-  };
-
   return (
     <div className="container">
       <SuperiorMenu />
       
       <div className="project-dashboard">
         {/* Informações Básicas do Projeto */}
-        <div className="project-info" style={{minHeight: '250px'}}>
-          <h1 className="project-name" style={{marginBottom: '55px'}}>{projeto.nome_projeto}</h1>
+        <div className="project-info">
+          <h1 className="project-name">{projeto.nome_projeto}</h1>
           <p className="project-description">{projeto.descricao_projeto}</p>
           
           <div className="project-meta">
             <div className="meta-item">
               <span className="meta-label">Início: </span>
               <span className="meta-value">
-              {projeto.data_inicio_proj}
+                {projeto.data_inicio_proj}
               </span>
             </div>
             <div className="meta-item">
@@ -236,10 +189,64 @@ const ProjetoPage = () => {
 
         {/* Barra de Progresso */}
         <div className="progress-container">
-          {/* Instituições */}
-          {renderInstituicoes()}
           <h2>Andamento do Projeto</h2>
           <ProgressBar projetoId={projeto.id_projeto} />
+        </div>
+
+        {/* Instituições Relacionadas */}
+        <div className="instituicoes-card">
+          <div className="instituicoes-header">
+            <h2 className="instituicoes-title">Instituições Relacionadas</h2>
+          </div>
+          
+          <div className="instituicoes-grid">
+            {/* Instituição Principal */}
+            {projetoDetalhado?.id_empresa && (
+              <div className="instituicao-card">
+                <div className="instituicao-header">
+                  <div className="instituicao-tipo">
+                    <span className="instituicao-tag" style={{backgroundColor: 'var(--primary-color)'}}>Principal</span>
+                  </div>
+                </div>
+                <div className="instituicao-body">
+                  <h3 className="instituicao-nome">{projetoDetalhado.nome_empresa}</h3>
+                  {projetoDetalhado.cnpj && (
+                    <p className="instituicao-cnpj">{formatCNPJ(projetoDetalhado.cnpj)}</p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Instituições Parceiras */}
+            {projetoDetalhado?.instituicoes_parceiras?.map(inst => (
+              <div key={`parceira-${inst.id_empresa}`} className="instituicao-card">
+                <div className="instituicao-header">
+                  <div className="instituicao-tipo">
+                    <span className="instituicao-tag" style={{backgroundColor: 'var(--success-dark)'}}>Parceira</span>
+                  </div>
+                </div>
+                <div className="instituicao-body">
+                  <h3 className="instituicao-nome">{inst.nome_empresa}</h3>
+                  {inst.cnpj && <p className="instituicao-cnpj">{formatCNPJ(inst.cnpj)}</p>}
+                </div>
+              </div>
+            ))}
+
+            {/* Instituições Financiadoras */}
+            {projetoDetalhado?.instituicoes_financiadoras?.map(inst => (
+              <div key={`financiadora-${inst.id_empresa}`} className="instituicao-card">
+                <div className="instituicao-header">
+                  <div className="instituicao-tipo">
+                    <span className="instituicao-tag" style={{backgroundColor: 'var(--warning-color)'}}>Financiadora</span>
+                  </div>
+                </div>
+                <div className="instituicao-body">
+                  <h3 className="instituicao-nome">{inst.nome_empresa}</h3>
+                  {inst.cnpj && <p className="instituicao-cnpj">{formatCNPJ(inst.cnpj)}</p>}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>

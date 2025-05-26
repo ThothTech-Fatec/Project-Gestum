@@ -164,3 +164,25 @@ export const getProjectParticipants = async (req: Request, res: Response) => {
         res.status(500).json({ error: 'Falha ao buscar participantes' });
     }
 };
+
+export const searchUsers = async (req: Request, res: Response) => {
+  try {
+    const { term } = req.query;
+
+    if (typeof term !== 'string' || term.length < 2) {
+      return res.json([]);
+    }
+
+    const [users] = await pool.query<(User & RowDataPacket)[]>(`
+      SELECT id_usuario, nome_usuario, email_usuario 
+      FROM usuarios 
+      WHERE nome_usuario LIKE ? OR email_usuario LIKE ?
+      LIMIT 10
+    `, [`%${term}%`, `%${term}%`]);
+
+    res.json(users);
+  } catch (error) {
+    console.error('Error searching users:', error);
+    res.status(500).json({ error: 'Failed to search users' });
+  }
+};
