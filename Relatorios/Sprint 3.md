@@ -80,7 +80,7 @@ Aprimorar a gestão de projetos com foco em comunicação interna, personalizaç
 [Sprint 3.pdf](https://github.com/user-attachments/files/20432791/Project.Gestum.pdf)
 ## 👨‍💻Trabalho desenvolvido
 
-https://github.com/user-attachments/assets/7b5bd622-2a88-49f6-9932-8527c90b77d3
+Vídeo da Sprint: https://drive.google.com/file/d/1E_LqwBUEnuI4WbZVlxlIdiEhuw84RwW_/view?usp=sharing
 
 
 ## 📈Burndown
