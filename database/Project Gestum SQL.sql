@@ -1,7 +1,6 @@
 CREATE DATABASE IF NOT EXISTS gestum;
 USE gestum;
 
-select * from projetos_atividades;
 CREATE TABLE usuarios (
   id_usuario INT PRIMARY KEY AUTO_INCREMENT,
   avatar LONGBLOB,
@@ -97,4 +96,34 @@ CREATE TABLE notificacoes (
   FOREIGN KEY (usuario_id) REFERENCES usuarios(id_usuario)
 );
 
+-- Tabela para instituições parceiras (relação muitos-para-muitos com projetos)
+CREATE TABLE IF NOT EXISTS projetos_instituicoes_parceiras (
+  id_relacao INT PRIMARY KEY AUTO_INCREMENT,
+  id_projeto INT NOT NULL,
+  id_empresa INT NOT NULL,
+  FOREIGN KEY (id_projeto) REFERENCES projetos(id_projeto) ON DELETE CASCADE,
+  FOREIGN KEY (id_empresa) REFERENCES instituicoes(id_empresa) ON DELETE CASCADE,
+  UNIQUE KEY (id_projeto, id_empresa) -- Evita duplicatas
+);
+
+-- Tabela para instituições financiadoras (relação muitos-para-muitos com projetos)
+CREATE TABLE IF NOT EXISTS projetos_instituicoes_financiadoras (
+  id_relacao INT PRIMARY KEY AUTO_INCREMENT,
+  id_projeto INT NOT NULL,
+  id_empresa INT NOT NULL,
+  FOREIGN KEY (id_projeto) REFERENCES projetos(id_projeto) ON DELETE CASCADE,
+  FOREIGN KEY (id_empresa) REFERENCES instituicoes(id_empresa) ON DELETE CASCADE,
+  UNIQUE KEY (id_projeto, id_empresa) -- Evita duplicatas
+);
+
 select * from projetos_atividades;
+
+select * from usuarios;
+
+ALTER TABLE notificacoes 
+DROP FOREIGN KEY notificacoes_ibfk_1;
+
+ALTER TABLE notificacoes 
+ADD CONSTRAINT notificacoes_ibfk_1 
+FOREIGN KEY (projeto_id) REFERENCES projetos (id_projeto) 
+ON DELETE CASCADE;

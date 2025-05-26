@@ -168,25 +168,21 @@ const ProjetoPage = () => {
       
       <div className="project-dashboard">
         {/* Informações Básicas do Projeto */}
-        <div className="project-info">
-          <h1 className="project-name">{projeto.nome_projeto}</h1>
+        <div className="project-info" style={{minHeight: '250px'}}>
+          <h1 className="project-name" style={{marginBottom: '55px'}}>{projeto.nome_projeto}</h1>
           <p className="project-description">{projeto.descricao_projeto}</p>
           
           <div className="project-meta">
             <div className="meta-item">
-              <span className="meta-label">Responsável:</span>
-              <span className="meta-value">{projeto.responsavel}</span>
-            </div>
-            <div className="meta-item">
-              <span className="meta-label">Início:</span>
+              <span className="meta-label">Início: </span>
               <span className="meta-value">
-                {new Date(projeto.data_inicio_proj).toLocaleDateString('pt-BR')}
+              {projeto.data_inicio_proj}
               </span>
             </div>
             <div className="meta-item">
-              <span className="meta-label">Término:</span>
+              <span className="meta-label">Término: </span>
               <span className="meta-value">
-                {new Date(projeto.data_fim_proj).toLocaleDateString('pt-BR')}
+                {projeto.data_fim_proj}
               </span>
             </div>
           </div>

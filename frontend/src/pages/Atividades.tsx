@@ -30,6 +30,7 @@ import axios from "axios";
 import UserAvatar from "../components/UserAvatar.tsx";
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import PersonRemoveIcon from '@mui/icons-material/PersonRemove';
+import InputMoeda from "../components/inputMoeda.tsx";
 
 interface Atividade {
   id_atividade: number;
@@ -176,28 +177,27 @@ const Atividades = () => {
     }
   };
 
-const fetchOrcamentoResumo = async () => {
-  try {
-    const response = await axios.get(`http://localhost:5000/projetos/${projectId}/orcamento/resumo`);
-    const data = response.data.data;
-    
-    setOrcamentoResumo({
-      orcamento_total: Number(data.orcamento_total) || 0,
-      orcamento_utilizado: Number(data.orcamento_utilizado) || 0,
-      orcamento_disponivel: Number(data.orcamento_disponivel) || 0,
-      percentual_utilizado: Number(data.percentual_utilizado) || 0
-    });
-  } catch (error) {
-    console.error('Erro ao buscar resumo de orçamento:', error);
-    // Set default values on error
-    setOrcamentoResumo({
-      orcamento_total: 0,
-      orcamento_utilizado: 0,
-      orcamento_disponivel: 0,
-      percentual_utilizado: 0
-    });
-  }
-};
+  const fetchOrcamentoResumo = async () => {
+    try {
+      const response = await axios.get(`http://localhost:5000/projetos/${projectId}/orcamento/resumo`);
+      const data = response.data.data;
+      
+      setOrcamentoResumo({
+        orcamento_total: Number(data.orcamento_total) || 0,
+        orcamento_utilizado: Number(data.orcamento_utilizado) || 0,
+        orcamento_disponivel: Number(data.orcamento_disponivel) || 0,
+        percentual_utilizado: Number(data.percentual_utilizado) || 0
+      });
+    } catch (error) {
+      console.error('Erro ao buscar resumo de orçamento:', error);
+      setOrcamentoResumo({
+        orcamento_total: 0,
+        orcamento_utilizado: 0,
+        orcamento_disponivel: 0,
+        percentual_utilizado: 0
+      });
+    }
+  };
 
   const handleCriarAtividade = async () => {
     try {
@@ -245,7 +245,7 @@ const fetchOrcamentoResumo = async () => {
     setNome('');
     setDescricao('');
     setStorypoint('');
-    setOrcamento(0);
+    setOrcamento(null);
     setSelectedParticipants([]);
     setDataInicioPlanejado('');
     setDataLimite('');
@@ -256,7 +256,7 @@ const fetchOrcamentoResumo = async () => {
     setNome(atividade.nome_atividade);
     setDescricao(atividade.descricao_atividade);
     setStorypoint(atividade.storypoint_atividade || '');
-    setOrcamento(atividade.orcamento || 0);
+    setOrcamento(atividade.orcamento || null);
     
     if (atividade.responsaveis) {
       const responsaveis = participantesProjeto.filter(participante => 
@@ -300,6 +300,7 @@ const fetchOrcamentoResumo = async () => {
         setOpenEdit(false);
         fetchAtividades();
         fetchOrcamentoResumo();
+        resetForm();
       } else {
         setSnackbarMessage(response.data.error || 'Erro ao atualizar');
       }
@@ -499,7 +500,10 @@ const fetchOrcamentoResumo = async () => {
             {
               atividade.orcamento && atividade.orcamento > 0 ? (
                 <Chip
-                  label={`R$ ${atividade.orcamento.toFixed(2)}`}
+                  label={new Intl.NumberFormat('pt-BR', {
+                    style: 'currency',
+                    currency: 'BRL'
+                  }).format(atividade.orcamento)}
                   color="secondary"
                   size="small"
                   variant="outlined"
@@ -679,19 +683,28 @@ const fetchOrcamentoResumo = async () => {
             <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
               <Typography>Orçamento Total:</Typography>
               <Typography fontWeight="bold">
-                R$ {typeof orcamentoResumo.orcamento_total === 'number' ? 
-                  orcamentoResumo.orcamento_total.toLocaleString('pt-BR') || '0' : 
-                  ''}
+                {new Intl.NumberFormat('pt-BR', {
+                  style: 'currency',
+                  currency: 'BRL'
+                }).format(orcamentoResumo.orcamento_total)}
               </Typography>
             </Box>
             <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
               <Typography>Utilizado:</Typography>
-              <Typography fontWeight="bold">R$ {orcamentoResumo.orcamento_utilizado.toLocaleString('pt-BR') || '0'}</Typography>
+              <Typography fontWeight="bold">
+                {new Intl.NumberFormat('pt-BR', {
+                  style: 'currency',
+                  currency: 'BRL'
+                }).format(orcamentoResumo.orcamento_utilizado)}
+              </Typography>
             </Box>
             <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
               <Typography>Disponível:</Typography>
               <Typography fontWeight="bold" color={orcamentoResumo.orcamento_disponivel < 0 ? 'error' : 'success'}>
-                R$ {orcamentoResumo.orcamento_disponivel.toLocaleString('pt-BR') || '0'}
+                {new Intl.NumberFormat('pt-BR', {
+                  style: 'currency',
+                  currency: 'BRL'
+                }).format(orcamentoResumo.orcamento_disponivel)}
               </Typography>
             </Box>
             <Box sx={{ mt: 1 }}>
@@ -729,7 +742,10 @@ const fetchOrcamentoResumo = async () => {
             <Button 
               variant="contained" 
               color="primary" 
-              onClick={() => setOpen(true)}
+              onClick={() => {
+                setOpen(true);
+                resetForm();
+              }}
               sx={{ 
                 fontSize: '1rem',
                 padding: '10px 20px',
@@ -872,20 +888,10 @@ const fetchOrcamentoResumo = async () => {
               margin="normal"
               inputProps={{ min: 0 }}
             />
-            <TextField
-              fullWidth
-              label="Orçamento (R$)"
-              type="number"
-              value={orcamento === null ? '' : orcamento} 
-              onChange={(e) => setOrcamento(e.target.value ? parseFloat(e.target.value) : null)} 
-              margin="normal"
-              inputProps={{ 
-                min: 0,
-                step: "0.01"
-              }}
-              InputProps={{
-                startAdornment: <InputAdornment position="start">R$</InputAdornment>,
-              }}
+            <InputMoeda
+              label="Orçamento"
+              value={orcamento ?? ''}
+              onChange={setOrcamento}
             />
             <TextField
               fullWidth
@@ -1015,20 +1021,10 @@ const fetchOrcamentoResumo = async () => {
               margin="normal"
               inputProps={{ min: 0 }}
             />
-            <TextField
-              fullWidth
-              label="Orçamento (R$)"
-              type="number"
+            <InputMoeda
+              label="Orçamento"
               value={orcamento}
-              onChange={(e) => setOrcamento(e.target.value ? parseFloat(e.target.value) : 0)}
-              margin="normal"
-              inputProps={{ 
-                min: 0,
-                step: "0.01"
-              }}
-              InputProps={{
-                startAdornment: <InputAdornment position="start">R$</InputAdornment>,
-              }}
+              onChange={setOrcamento}
             />
             <Autocomplete
               multiple
@@ -1042,7 +1038,7 @@ const fetchOrcamentoResumo = async () => {
               renderInput={(params) => (
                 <TextField
                   {...params}
-                  label="Responsáveis"
+                  label="Selecione os responsáveis"
                   placeholder="Digite para buscar"
                   margin="normal"
                 />
@@ -1084,6 +1080,7 @@ const fetchOrcamentoResumo = async () => {
                 onClick={handleEditarAtividade} 
                 variant="contained"
                 disabled={!nome || !descricao || isLoadingAction}
+                sx={{ borderRadius: 1 }}
               >
                 {isLoadingAction ? 'Salvando...' : 'Salvar Alterações'}
               </Button>
@@ -1094,8 +1091,9 @@ const fetchOrcamentoResumo = async () => {
 
       <Snackbar
         open={!!snackbarMessage}
-        autoHideDuration={3000}
+        autoHideDuration={6000}
         onClose={() => setSnackbarMessage('')}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }} // Alterado de 'right' para 'left'
       >
         <Alert 
           onClose={() => setSnackbarMessage('')} 
