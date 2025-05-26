@@ -119,7 +119,6 @@ app.get('/api/dashboard/:projectId', async (req, res) => {
         });
     }
 });
-// Middleware de erro (adicione no final, antes do listen)
 app.use((err, req, res, next) => {
     console.error(err.stack);
     res.status(500).send('Algo deu errado!');

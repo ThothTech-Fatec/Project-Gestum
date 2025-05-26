@@ -483,14 +483,72 @@ export const updateProject = async (req: Request, res: Response) => {
   }
 };
 
+// Função para excluir um projeto e suas notificações
 export const deleteProject = async (req: Request, res: Response) => {
   const connection = await pool.getConnection();
   try {
     const projectId = req.params.id;
     
     await connection.beginTransaction();
-    
-    // As relações serão deletadas em cascata devido às constraints FOREIGN KEY
+
+    // 1. Obter todas as atividades do projeto
+    const [atividades] = await connection.query<RowDataPacket[]>(
+      'SELECT id_atividade FROM projetos_atividades WHERE id_projeto = ?',
+      [projectId]
+    );
+
+    // 2. Para cada atividade, excluir suas dependências
+    for (const atividade of atividades) {
+      // 2.1. Excluir responsáveis pela atividade
+      await connection.query<ResultSetHeader>(
+        'DELETE FROM responsaveis_atividade WHERE id_atividade = ?',
+        [atividade.id_atividade]
+      );
+
+      // 2.2. Excluir orçamentos específicos da atividade
+      await connection.query<ResultSetHeader>(
+        'DELETE FROM orcamento_ati WHERE id_atividade = ?',
+        [atividade.id_atividade]
+      );
+    }
+
+    // 3. Excluir as atividades do projeto
+    await connection.query<ResultSetHeader>(
+      'DELETE FROM projetos_atividades WHERE id_projeto = ?',
+      [projectId]
+    );
+
+    // 4. Excluir notificações relacionadas ao projeto
+    await connection.query<ResultSetHeader>(
+      'DELETE FROM notificacoes WHERE projeto_id = ?', 
+      [projectId]
+    );
+
+    // 5. Excluir orçamento principal do projeto
+    await connection.query<ResultSetHeader>(
+      'DELETE FROM orcamento WHERE id_projeto = ?',
+      [projectId]
+    );
+
+    // 6. Excluir instituições parceiras
+    await connection.query<ResultSetHeader>(
+      'DELETE FROM projetos_instituicoes_parceiras WHERE id_projeto = ?',
+      [projectId]
+    );
+
+    // 7. Excluir instituições financiadoras
+    await connection.query<ResultSetHeader>(
+      'DELETE FROM projetos_instituicoes_financiadoras WHERE id_projeto = ?',
+      [projectId]
+    );
+
+    // 8. Excluir participantes do projeto
+    await connection.query<ResultSetHeader>(
+      'DELETE FROM projetos_participantes WHERE id_projeto = ?',
+      [projectId]
+    );
+
+    // 9. Finalmente, excluir o projeto
     await connection.query<ResultSetHeader>(
       'DELETE FROM projetos WHERE id_projeto = ?', 
       [projectId]
@@ -498,13 +556,20 @@ export const deleteProject = async (req: Request, res: Response) => {
     
     await connection.commit();
     
-    res.json({ message: 'Projeto excluído com sucesso' });
+    res.json({ 
+      success: true,
+      message: 'Projeto e todos os dados relacionados foram excluídos com sucesso',
+      atividadesExcluidas: atividades.length
+    });
   } catch (error) {
     await connection.rollback();
     console.error('Erro ao excluir projeto:', error);
     res.status(500).json({ 
+      success: false,
       error: 'Falha ao excluir projeto',
-      details: error instanceof Error ? error.message : String(error)
+      details: process.env.NODE_ENV === 'development' ? 
+        error instanceof Error ? error.message : String(error) : 
+        'Ocorreu um erro interno'
     });
   } finally {
     connection.release();

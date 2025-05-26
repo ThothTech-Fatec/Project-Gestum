@@ -5,10 +5,11 @@ import { Chart, registerables } from "chart.js";
 import "../css/Dashboard.css";
 import SuperiorMenu from "../components/MenuSuperior.tsx";
 import axios from "axios";
+import PdfExportButton from "../components/pdfButton.tsx";
 
 Chart.register(...registerables);
 
-interface DashboardData {
+export interface DashboardData {
   totalTasks: number;
   completedTasks: number;
   overdueTasks: number;
@@ -33,21 +34,33 @@ interface DashboardData {
     used: number;
     remaining: number;
   };
-
 }
 
-interface OrcamentoResumo {
+export interface OrcamentoResumo {
   orcamento_total: number;
   orcamento_utilizado: number;
   orcamento_disponivel: number;
   percentual_utilizado: number;
 }
 
-
-interface Projeto {
+export type Projeto = {
   id_projeto: number;
   nome_projeto: string;
-}
+  descricao_projeto: string;
+  responsavel: string;
+  data_inicio_proj: string;
+  data_fim_proj: string;
+  data_inicio_formatada?: string;
+  data_fim_formatada?: string;
+  progresso_projeto?: number;
+  user_role?: string;
+  nome_area: string;
+  area_atuacao_id?: number;
+  id_empresa?: number;
+  nome_empresa?: string;
+  cnpj?: string;
+  status?: string;
+};
 
 const Dashboard = () => {
   const location = useLocation();
@@ -59,13 +72,12 @@ const Dashboard = () => {
   const projeto = location.state?.projeto as Projeto | undefined;
   const projectId = projeto?.id_projeto;
 
-    const [orcamento, setOrcamento] = useState<number | null>(null);
-    const [orcamentoResumo, setOrcamentoResumo] = useState<OrcamentoResumo>({
-        orcamento_total: 0,
-        orcamento_utilizado: 0,
-        orcamento_disponivel: 0,
-        percentual_utilizado: 0
-      });
+  const [orcamentoResumo, setOrcamentoResumo] = useState<OrcamentoResumo>({
+    orcamento_total: 0,
+    orcamento_utilizado: 0,
+    orcamento_disponivel: 0,
+    percentual_utilizado: 0
+  });
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -91,7 +103,6 @@ const Dashboard = () => {
           },
         ];
 
-        // Adiciona dados de orçamento padrão se não vierem da API
         const budgetData = response.data.budget || {
           total: 10000,
           used: 0,
@@ -119,7 +130,7 @@ const Dashboard = () => {
     }
   }, [projectId, navigate]);
 
-    const fetchOrcamentoResumo = async () => {
+  const fetchOrcamentoResumo = async () => {
     try {
       const response = await axios.get(`http://localhost:5000/projetos/${projectId}/orcamento/resumo`);
       const data = response.data.data;
@@ -132,7 +143,6 @@ const Dashboard = () => {
       });
     } catch (error) {
       console.error('Erro ao buscar resumo de orçamento:', error);
-      // Set default values on error
       setOrcamentoResumo({
         orcamento_total: 0,
         orcamento_utilizado: 0,
@@ -192,17 +202,15 @@ const Dashboard = () => {
 
   const remainingTasks = data.totalTasks - data.completedTasks;
 
-
-  // Dados para o gráfico de pizza
   const pieChartData = {
     labels: ["Concluídas", "Atrasadas", "Em andamento"],
     datasets: [
       {
         data: [data.completedTasks, data.overdueTasks, remainingTasks],
         backgroundColor: [
-          "#4bc0c0", // azul claro - concluídas
-          "#ff6384", // vermelho claro - atrasadas
-          "#f6ad55", // laranja - em andamento
+          "#4bc0c0",
+          "#ff6384",
+          "#f6ad55",
         ],
         borderColor: "#fff",
         borderWidth: 1,
@@ -212,6 +220,7 @@ const Dashboard = () => {
 
   const pieChartOptions = {
     responsive: true,
+    maintainAspectRatio: false,
     plugins: {
       legend: {
         position: "top" as const,
@@ -235,7 +244,7 @@ const Dashboard = () => {
       <SuperiorMenu />
 
       <div className="dashboard-main-card">
-        <h2>Dashboard do Projeto #{projectId}</h2>
+        <h2>Dashboard do Projeto: {projeto?.nome_projeto || `#${projectId}`}</h2>
 
         <div className="metrics-grid">
           <div className="metric-item">
@@ -268,10 +277,11 @@ const Dashboard = () => {
 
         <div className="dashboard-chart">
           <h3>Distribuição de Tarefas por Status</h3>
-          <Pie data={pieChartData} options={pieChartOptions} />
+          <div className="chart-container">
+            <Pie data={pieChartData} options={pieChartOptions} />
+          </div>
         </div>
 
-        {/* Nova seção de Orçamento */}
         <div className="budget-section">
           <h3>Orçamento do Projeto</h3>
           <div className="budget-metrics">
@@ -292,11 +302,18 @@ const Dashboard = () => {
               <p className="budget-value percentage">{orcamentoResumo.percentual_utilizado}%</p>
             </div>
           </div>
-          <div className="budget-bar">
-            <div 
-              className="budget-progress" 
-              style={{ width: `${orcamentoResumo.percentual_utilizado}%` }}
-            ></div>
+          <div className="budget-bar-container">
+            <div className="budget-bar">
+              <div 
+                className="budget-progress" 
+                style={{ width: `${orcamentoResumo.percentual_utilizado}%` }}
+              ></div>
+            </div>
+            <div className="budget-labels">
+              <span>0%</span>
+              <span>50%</span>
+              <span>100%</span>
+            </div>
           </div>
         </div>
 
@@ -327,6 +344,13 @@ const Dashboard = () => {
                 </div>
               ))}
             </div>
+            {!loading && !error && data && (
+              <PdfExportButton 
+                projeto={projeto!} 
+                dashboardData={data} 
+                orcamentoResumo={orcamentoResumo} 
+              />
+            )}
           </div>
         )}
       </div>

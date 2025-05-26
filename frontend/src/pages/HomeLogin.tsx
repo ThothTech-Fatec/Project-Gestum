@@ -5,6 +5,7 @@ import ProgressBar from "../components/ProgressBar.tsx";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import CadastroInstituicao from "../components/CadastroInstituicao.tsx";
+import InputMoeda from "../components/inputMoeda.tsx";
 
 type Projeto = {
   id_projeto: number;
@@ -22,7 +23,7 @@ type Projeto = {
   id_empresa?: number;
   nome_empresa?: string;
   cnpj?: string;
-  status?: string;
+  status?: 'nao_iniciado' | 'em_andamento' | 'concluido';
   instituicoes_parceiras?: Instituicao[];
   instituicoes_financiadoras?: Instituicao[];
 };
@@ -54,12 +55,6 @@ const formatCNPJ = (cnpj: string) => {
     );
   }
   return cnpj;
-};
-
-const getStatusProjeto = (progresso: number = 0): Exclude<StatusProjeto, 'todos'> => {
-  if (progresso <= 0) return 'nao_iniciado';
-  if (progresso >= 100) return 'concluido';
-  return 'em_andamento';
 };
 
 const Home = () => {
@@ -193,17 +188,24 @@ const Home = () => {
       const response = await api.get('/user_projects', { 
         params: { userId }
       });
-  
-      const projetosFormatados = response.data.map((projeto: any) => {
+
+      const projetosFormatados = await Promise.all(response.data.map(async (projeto: any) => {
         const areaCorrespondente = areasAtuacao.find(a => 
           a.id === Number(projeto.area_atuacao_id) || 
           a.nome.toLowerCase() === projeto.nome_area?.toLowerCase()
         );
 
-        // Calcula o status baseado no progresso
-        const progresso = projeto.progresso_projeto || 0;
-        const status = getStatusProjeto(progresso);
-  
+        // Busca o progresso real do projeto
+        let progresso = 0;
+        try {
+          const progressResponse = await api.get(`/progressStoryPoints/${projeto.id_projeto}`);
+          const { concluido, total } = progressResponse.data;
+          progresso = total > 0 ? Math.round((concluido / total) * 100) : 0;
+        } catch (error) {
+          console.error('Erro ao buscar progresso:', error);
+          progresso = 0;
+        }
+
         return {
           ...projeto,
           area_atuacao_id: areaCorrespondente ? areaCorrespondente.id : null,
@@ -212,12 +214,13 @@ const Home = () => {
           data_fim_formatada: formatarDataParaExibicao(projeto.data_fim_proj),
           user_role: projeto.user_role || 'equipe',
           progresso_projeto: progresso,
-          status: status, // Adiciona o status calculado
+          status: progresso <= 0 ? 'nao_iniciado' : 
+                 progresso >= 100 ? 'concluido' : 'em_andamento',
           instituicoes_parceiras: projeto.instituicoes_parceiras || [],
           instituicoes_financiadoras: projeto.instituicoes_financiadoras || []
         };
-      });
-  
+      }));
+
       setProjetos(projetosFormatados);
     } catch (error) {
       console.error('Erro ao carregar projetos:', error);
@@ -229,24 +232,21 @@ const Home = () => {
   const filtrarProjetos = useCallback(() => {
     return projetos.filter(projeto => {
       // Filtro por status
-      if (filtroStatus !== 'todos') {
-        const progresso = projeto.progresso_projeto || 0;
-        const statusProjeto = getStatusProjeto(progresso);
-        
-        if (statusProjeto !== filtroStatus) {
-          return false;
-        }
+      if (filtroStatus !== 'todos' && projeto.status !== filtroStatus) {
+        return false;
       }
 
-      // Outros filtros...
+      // Filtro por área de atuação
       if (filtroArea !== null && Number(projeto.area_atuacao_id) !== Number(filtroArea)) {
         return false;
       }
 
+      // Filtro por instituição
       if (filtroInstituicao !== null && projeto.id_empresa !== filtroInstituicao) {
         return false;
       }
 
+      // Filtro por responsável
       if (filtroResponsavel) {
         if (filtroResponsavel === 'meus' && projeto.user_role !== 'responsavel') return false;
         if (filtroResponsavel === 'equipe' && projeto.user_role === 'responsavel') return false;
@@ -257,11 +257,6 @@ const Home = () => {
   }, [projetos, filtroStatus, filtroArea, filtroInstituicao, filtroResponsavel]);
 
   const projetosFiltrados = filtrarProjetos();
-  console.log('Projetos filtrados:', projetosFiltrados.map(p => ({
-    nome: p.nome_projeto,
-    progresso: p.progresso_projeto,
-    status: getStatusProjeto(p.progresso_projeto || 0)
-  })));
 
   useEffect(() => {
     const loadUserId = () => {
@@ -279,62 +274,17 @@ const Home = () => {
       return id;
     };
 
-    const id = loadUserId();
-    if (id) {
-      const loadData = async () => {
-        try {
-          const areasResponse = await api.get('/areas');
-          const areasFormatadas = areasResponse.data.map((area: any) => ({
-            id: Number(area.id),
-            nome: area.nome
-          }));
-          setAreasAtuacao(areasFormatadas);
-
-          const instituicoesResponse = await api.get('/getinstituicoes');
-          setInstituicoes(instituicoesResponse.data.map((inst: any) => ({
-            ...inst,
-            cnpj: inst.cnpj || ''
-          })));
-
-          const projetosResponse = await api.get('/user_projects', { 
-            params: { userId: id }
-          });
-
-          const projetosFormatados = projetosResponse.data.map((projeto: any) => {
-            const areaCorrespondente = areasFormatadas.find(a => 
-              a.id === Number(projeto.area_atuacao_id) || 
-              a.nome.toLowerCase() === projeto.nome_area?.toLowerCase()
-            );
-
-            // Calcula o status baseado no progresso
-            const progresso = projeto.progresso_projeto || 0;
-            const status = getStatusProjeto(progresso);
-
-            return {
-              ...projeto,
-              area_atuacao_id: areaCorrespondente ? areaCorrespondente.id : null,
-              nome_area: areaCorrespondente ? areaCorrespondente.nome : projeto.nome_area || 'Não definida',
-              data_inicio_formatada: formatarDataParaExibicao(projeto.data_inicio_proj),
-              data_fim_formatada: formatarDataParaExibicao(projeto.data_fim_proj),
-              user_role: projeto.user_role || 'equipe',
-              progresso_projeto: progresso,
-              status: status, // Adiciona o status calculado
-              instituicoes_parceiras: projeto.instituicoes_parceiras || [],
-              instituicoes_financiadoras: projeto.instituicoes_financiadoras || []
-            };
-          });
-
-          setProjetos(projetosFormatados);
-        } catch (error) {
-          console.error('Erro ao carregar dados:', error);
-        } finally {
-          setLoading(false);
-        }
-      };
-      
-      loadData();
-    }
-  }, [navigate, formatarDataParaExibicao]);
+      const id = loadUserId();
+      if (id) {
+        const loadData = async () => {
+          await carregarAreasAtuacao();
+          await carregarInstituicoes();
+          await carregarProjetos(id);
+        };
+        
+        loadData();
+      }
+    }, [navigate]);
 
   const navegarParaProjeto = (projeto: Projeto) => {
     localStorage.setItem('Id_Project', projeto.id_projeto.toString());
@@ -1067,16 +1017,11 @@ const Home = () => {
             </div>
 
             <div className="input-container">
-              <label className="input-label">Orçamento (R$)</label>
-              <input
-                type="text"
-                value={valorOrcamento}
-                onChange={(e) => {
-                  const value = e.target.value.replace(/[^0-9,.]/g, '');
-                  setValorOrcamento(value);
-                }}
-                className="input-field"
-                placeholder="Digite o valor do orçamento"
+              <label className="input-label">Orçamento</label>
+              <InputMoeda
+                value={valorOrcamento ? parseFloat(valorOrcamento) : null}
+                onChange={(value) => setValorOrcamento(value?.toString() || "")}
+                label="Orçamento"
               />
             </div>
             
@@ -1217,15 +1162,10 @@ const Home = () => {
 
                 <div className="input-container">
                   <label className="input-label">Orçamento (R$)</label>
-                  <input
-                    type="text"
+                  <InputMoeda
                     value={valorOrcamento}
-                    onChange={(e) => {
-                      const value = e.target.value.replace(/[^0-9,.]/g, '');
-                      setValorOrcamento(value);
-                    }}
-                    className="input-field"
-                    placeholder="Digite o valor do orçamento"
+                    onChange={(value) => setValorOrcamento(value?.toString() || "")}
+                    label="Orçamento"
                   />
                 </div>
               </div>
