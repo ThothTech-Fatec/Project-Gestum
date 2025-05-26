@@ -352,6 +352,8 @@
   position: relative;
   animation: modalSlideIn 0.3s ease;
   border: 1px solid #e0f2fe;
+  max-height: 60vh; /* ou outro valor adequado */
+  overflow-y: auto; /* Habilita scroll vertical */
 }
 
 .modal h2, .modal-proj h2 {
@@ -365,6 +367,8 @@
 .modal-horizontal {
   max-width: 900px;
   width: 90%;
+  max-height: 80vh;
+  overflow-y: auto; 
 }
 
 /* INPUTS */

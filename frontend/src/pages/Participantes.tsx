@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import SuperiorMenu from "../components/MenuSuperior.tsx";
 import "../css/Participantes.css";
-import { Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Alert } from "@mui/material";
+import { Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Alert, Autocomplete, Chip } from "@mui/material";
 import { useLocation } from 'react-router-dom';
 import axios from "axios";
 import UserAvatar from "../components/UserAvatar.tsx";
@@ -11,6 +11,12 @@ interface Participant {
   nome_usuario: string;
   email_usuario: string;
   tipo: 'responsavel' | 'colaborador';
+}
+
+interface UserSuggestion {
+  id_usuario: number;
+  nome_usuario: string;
+  email_usuario: string;
 }
 
 interface Projeto {
@@ -29,6 +35,8 @@ const Participantes = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [isResponsavel, setIsResponsavel] = useState(false);
+  const [userSuggestions, setUserSuggestions] = useState<UserSuggestion[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
 
   const location = useLocation();
   const projeto = location.state?.projeto as Projeto;
@@ -37,7 +45,6 @@ const Participantes = () => {
   useEffect(() => {
     if (projectId) {
       fetchParticipants();
-      // Verifica se o usuário atual é responsável pelo projeto
       setIsResponsavel(projeto.user_role === 'responsavel');
     }
   }, [projectId, projeto]);
@@ -55,6 +62,23 @@ const Participantes = () => {
       setParticipants([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const searchUsers = async (term: string) => {
+    if (term.length < 2) {
+      setUserSuggestions([]);
+      return;
+    }
+
+    try {
+      const response = await api.get('/search_users', {
+        params: { term }
+      });
+      setUserSuggestions(response.data || []);
+    } catch (error) {
+      console.error('Error searching users:', error);
+      setUserSuggestions([]);
     }
   };
 
@@ -79,7 +103,7 @@ const Participantes = () => {
   const handleAddParticipant = async () => {
     try {
       if (!newParticipantEmail) {
-        setError('Por favor, insira um email válido');
+        setError('Por favor, selecione um usuário válido');
         return;
       }
 
@@ -90,6 +114,8 @@ const Participantes = () => {
 
       setOpenDialog(false);
       setNewParticipantEmail('');
+      setSearchTerm('');
+      setUserSuggestions([]);
       setError('');
       fetchParticipants();
     } catch (error) {
@@ -127,7 +153,6 @@ const Participantes = () => {
         {error && <div className="error-message">{error}</div>}
         
         <div className="participants-grid">
-          {/* Card de adicionar participante - só aparece para responsáveis */}
           {isResponsavel && (
             <div className="participant-card add-card" onClick={() => setOpenDialog(true)}>
               <div className="add-icon">➕</div>
@@ -149,7 +174,6 @@ const Participantes = () => {
                   {participant.tipo === 'responsavel' ? 'Responsável' : 'Colaborador'}
                 </span>
                 
-                {/* Botão de remover - só aparece para responsáveis e não para o próprio responsável */}
                 {isResponsavel && participant.tipo !== 'responsavel' && (
                   <button
                     className="remove-part"
@@ -170,23 +194,73 @@ const Participantes = () => {
           )}
         </div>
 
-        {/* Modal de adicionar participante - só aparece para responsáveis */}
         {isResponsavel && (
-          <Dialog open={openDialog} onClose={() => setOpenDialog(false)}>
+          <Dialog open={openDialog} onClose={() => {
+            setOpenDialog(false);
+            setSearchTerm('');
+            setUserSuggestions([]);
+          }}>
             <DialogTitle>Adicionar Participante</DialogTitle>
-            <DialogContent>
-              <TextField
-                autoFocus
-                margin="dense"
-                label="Email do Participante"
-                type="email"
-                fullWidth
-                value={newParticipantEmail}
-                onChange={(e) => setNewParticipantEmail(e.target.value)}
+            <DialogContent sx={{ minWidth: '400px', pt: 3 }}>
+              <Autocomplete
+                freeSolo
+                options={userSuggestions}
+                getOptionLabel={(option) => 
+                  typeof option === 'string' ? option : 
+                  `${option.nome_usuario} (${option.email_usuario})`
+                }
+                inputValue={searchTerm}
+                onInputChange={(_, newValue) => {
+                  setSearchTerm(newValue);
+                  searchUsers(newValue);
+                }}
+                onChange={(_, newValue) => {
+                  if (newValue && typeof newValue !== 'string') {
+                    setNewParticipantEmail(newValue.email_usuario);
+                  }
+                }}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Pesquisar por nome ou email"
+                    fullWidth
+                    margin="normal"
+                  />
+                )}
+                renderOption={(props, option) => (
+                  <li {...props} key={option.id_usuario}>
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                      <div style={{ marginRight: 10 }}>
+                        <UserAvatar email={option.email_usuario} size={32} />
+                      </div>
+                      <div>
+                        <div>{option.nome_usuario}</div>
+                        <div style={{ fontSize: '0.8rem', color: '#666' }}>{option.email_usuario}</div>
+                      </div>
+                    </div>
+                  </li>
+                )}
+                noOptionsText="Nenhum usuário encontrado"
               />
+              
+              {newParticipantEmail && (
+                <div style={{ marginTop: 16 }}>
+                  <Chip 
+                    label={`Usuário selecionado: ${newParticipantEmail}`}
+                    onDelete={() => {
+                      setNewParticipantEmail('');
+                      setSearchTerm('');
+                    }}
+                  />
+                </div>
+              )}
             </DialogContent>
             <DialogActions>
-              <Button onClick={() => setOpenDialog(false)}>Cancelar</Button>
+              <Button onClick={() => {
+                setOpenDialog(false);
+                setSearchTerm('');
+                setUserSuggestions([]);
+              }}>Cancelar</Button>
               <Button 
                 onClick={handleAddParticipant} 
                 variant="contained" 
